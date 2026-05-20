@@ -32,6 +32,10 @@ export type Step = {
   tip: string | null
 }
 
+export interface q {
+  quantity: number | null
+}
+
 export type Recipe = {
   id: number
   name: string
