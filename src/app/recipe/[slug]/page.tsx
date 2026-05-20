@@ -24,7 +24,7 @@ const MetaItem = ({
   </div>
 )
 
-export default async function RecipePage(props: PageProps<"/recipe/[slug]">) {
+const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
   const { slug } = await props.params
 
   let recipe: Recipe
@@ -199,3 +199,5 @@ export default async function RecipePage(props: PageProps<"/recipe/[slug]">) {
     </div>
   )
 }
+
+export default RecipePage
