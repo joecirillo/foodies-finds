@@ -30,10 +30,12 @@ src/
 - Prefer named exports over default exports
 - Use arrow functions except when hoisting is required
 - Co-locate component styles with the component (Tailwind only, no CSS files)
+- Make sure to add unit tests as features are develped
+- The code should be self documenting. Don't write comments unless they are asked for
 - No `any` types unless its type is obvious
 
 ## Backend API
-The API uses x-api-key as a header. Backend base URL: process.env.NEXT_PUBLIC_API_URL.
+The API uses x-api-key as a header. Backend base URL: process.env.API_URL.
 
 ## UI/UX Rules
 - Mobile-first always — primary targets are 375px (iPhone SE) and 390px (iPhone 14/15)
