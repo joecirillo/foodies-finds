@@ -1,4 +1,4 @@
-import type { ApiResponse, Recipe, CreateRecipePayload } from "@/types/recipe"
+import type { ApiResponse, Recipe, AddRecipePayload } from "@/types/recipe"
 
 async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
@@ -40,5 +40,5 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
 export const getRecipe = (id: number | string) =>
   apiFetch<Recipe>(`/recipe/get/${id}`)
 
-export const createRecipe = (payload: CreateRecipePayload) =>
+export const addRecipe = (payload: AddRecipePayload) =>
   apiPost<Recipe>("/recipe/save", payload)

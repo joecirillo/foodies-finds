@@ -38,7 +38,7 @@ export type Unit = {
   abbreviation: string
 }
 
-export type CreateIngredientInput = {
+export type AddIngredientInput = {
   id: null
   name: string
   unitId: number | null
@@ -46,13 +46,13 @@ export type CreateIngredientInput = {
   notes: string | null
 }
 
-export type CreateStepInput = {
+export type AddStepInput = {
   stepNumber: number
   description: string
   tip: string | null
 }
 
-export type CreateRecipePayload = {
+export type AddRecipePayload = {
   name: string
   description: string | null
   calories: number | null
@@ -62,8 +62,8 @@ export type CreateRecipePayload = {
   cuisine: { id: number; name: string } | null
   tags: { id: number | null; name: string }[]
   author: string | null
-  ingredients: CreateIngredientInput[]
-  steps: CreateStepInput[]
+  ingredients: AddIngredientInput[]
+  steps: AddStepInput[]
   imageUrl: string | null
 }
 
