@@ -32,12 +32,43 @@ export type Step = {
   tip: string | null
 }
 
-export interface q {
-  quantity: number | null
+export type Unit = {
+  id: number
+  name: string
+  abbreviation: string
+}
+
+export type AddIngredientInput = {
+  id: null
+  name: string
+  unitId: number | null
+  quantity: number
+  notes: string | null
+}
+
+export type AddStepInput = {
+  stepNumber: number
+  description: string
+  tip: string | null
+}
+
+export type AddRecipePayload = {
+  name: string
+  description: string | null
+  calories: number | null
+  servings: number | null
+  cookingTime: number
+  preparationTime: number
+  cuisine: { id: number; name: string } | null
+  tags: { id: number | null; name: string }[]
+  author: string | null
+  ingredients: AddIngredientInput[]
+  steps: AddStepInput[]
+  imageUrl: string | null
 }
 
 export type Recipe = {
-  id: number
+  id: number | null
   name: string
   description: string | null
   calories: number | null

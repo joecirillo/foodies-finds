@@ -4,7 +4,7 @@
 Foodies Finds is a webapp where users can add and update their favorite homemade recipes. It is used mostly by users on their phones, so mobile UI/UX is a priority. The theme of the site should appeal to people's appetites
 
 ## Business Logic
-When a user creates a recipe, they can also create ingredients, tags, and cuisines with it. Steps and ingredients are mandatory. There are other attributes like name, but those are some of the most important.
+When a user adds a recipe, they can also create ingredients, tags, and cuisines with it. Steps and ingredients are mandatory. There are other attributes like name, but those are some of the most important.
 
 ## Tech Stack
 - NextJS 16.2.4
@@ -30,7 +30,8 @@ src/
 - Prefer named exports over default exports
 - Use arrow functions except when hoisting is required
 - Co-locate component styles with the component (Tailwind only, no CSS files)
-- Make sure to add unit tests as features are develped
+- Make sure to add unit tests using Vitest and React Testing Library
+- Make sure to provide errors to the user during request validations. Avoid 500 errors being propagated to users
 - The code should be self documenting. Don't write comments unless they are asked for
 - No `any` types unless its type is obvious
 

@@ -24,7 +24,7 @@ export const Header = () => {
               <HugeiconsIcon icon={CookBookIcon} className="size-8" strokeWidth={2} />
             </Button>
             <Button
-              render={<Link href="/recipe/new" />}
+              render={<Link href="/recipe/add" />}
               nativeButton={false}
               size="icon-sm"
               className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
@@ -60,7 +60,7 @@ export const Header = () => {
             View Recipes
           </Button>
           <Button
-            render={<Link href="/recipe/new" />}
+            render={<Link href="/recipe/add" />}
             nativeButton={false}
             size="lg"
             className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
