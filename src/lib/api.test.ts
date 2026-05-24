@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
+import type { AddRecipePayload } from "@/types/recipe"
 import { addRecipe, getRecipe } from "./api"
 
 const mockFetch = vi.fn()
@@ -16,14 +17,14 @@ describe("addRecipe", () => {
       json: () => Promise.resolve(recipe),
     })
 
-    const result = await addRecipe({ name: "Pasta" } as never)
+    const result = await addRecipe({ name: "Pasta" } as AddRecipePayload)
     expect(result).toEqual(recipe)
   })
 
   it("throws Error with status code on non-ok response", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 400 })
 
-    await expect(addRecipe({ name: "Bad" } as never)).rejects.toMatchObject({
+    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
       message: "API 400",
       code: "400",
     })
@@ -32,7 +33,7 @@ describe("addRecipe", () => {
   it("throws Error with status code on 500 response", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
 
-    await expect(addRecipe({ name: "Bad" } as never)).rejects.toMatchObject({
+    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
       message: "API 500",
       code: "500",
     })
@@ -41,7 +42,7 @@ describe("addRecipe", () => {
   it("propagates network failures", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
-    await expect(addRecipe({ name: "Bad" } as never)).rejects.toThrow(
+    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toThrow(
       "Network error"
     )
   })
