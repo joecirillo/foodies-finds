@@ -1,3 +1,8 @@
+export type RecipeSearchResult = {
+  id: number
+  name: string
+}
+
 export type ApiResponse<T> = {
   timeStamp: string
   status: string
