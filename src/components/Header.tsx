@@ -2,7 +2,7 @@ import Link from "next/link";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CookBookIcon, Add01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { SearchBar } from "@/components/SearchBar";
 
 export const Header = () => {
   return (
@@ -34,10 +34,7 @@ export const Header = () => {
           </div>
         </div>
         <div className="px-4 pb-2">
-          <Input
-            placeholder="Search for recipes..."
-            className="h-9 w-full bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:ring-primary-foreground/30"
-          />
+          <SearchBar className="h-9 w-full bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:ring-primary-foreground/30" />
         </div>
       </div>
 
@@ -47,7 +44,7 @@ export const Header = () => {
           Foodies Finds
         </Link>
         <div className="flex flex-1 max-w-sm mx-8">
-          <Input placeholder="Search for recipes..." className="h-9 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:ring-primary-foreground/30" />
+          <SearchBar className="h-9 bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus-visible:ring-primary-foreground/30" />
         </div>
         <div className="flex items-center gap-3">
           <Button
