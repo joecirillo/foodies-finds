@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { addRecipeAction as addRecipeAction } from "@/app/actions/recipe"
+import { toSentenceCase, lowerFirst } from "@/lib/text"
 import type { Unit } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
@@ -264,13 +265,13 @@ export const RecipeForm = () => {
       cookingTime: cookingTime ? parseInt(cookingTime) : 0,
       preparationTime: parseInt(preparationTime),
       cuisine: selectedCuisine,
-      tags: selectedTags,
+      tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().toLowerCase() })),
       author: author.trim() || null,
       ingredients: ingredients
         .filter((i) => i.name.trim() && i.quantity > 0)
         .map((i) => ({
           id: null,
-          name: i.name.trim(),
+          name: i.name.trim().toLowerCase(),
           unitId: i.unitId,
           quantity: i.quantity,
           notes: i.notes.trim() || null,
@@ -279,8 +280,8 @@ export const RecipeForm = () => {
         .filter((s) => s.description.trim())
         .map((s, idx) => ({
           stepNumber: idx + 1,
-          description: s.description.trim(),
-          tip: s.tip.trim() || null,
+          description: toSentenceCase(s.description.trim()),
+          tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
       imageUrl: imageUrl.trim() || null,
     })

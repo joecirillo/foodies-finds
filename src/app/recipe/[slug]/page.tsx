@@ -5,6 +5,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft02Icon, Edit02Icon, TimeIcon, FireIcon, UserIcon } from "@hugeicons/core-free-icons"
 import { getRecipe } from "@/lib/api"
 import { formatMinutes, formatQuantity } from "@/lib/format"
+import { toTitleCase, toSentenceCase, lowerFirst } from "@/lib/text"
 import { Button } from "@/components/ui/button"
 import type { Recipe } from "@/types/recipe"
 
@@ -74,7 +75,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
                 key={tag.id}
                 className="rounded-full bg-secondary px-3 py-0.5 text-xs font-medium text-secondary-foreground"
               >
-                {tag.name}
+                {toTitleCase(tag.name)}
               </span>
             ))}
           </div>
@@ -93,7 +94,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
 
         <div className="relative mt-4 w-full aspect-4/3 overflow-hidden rounded-2xl bg-muted">
           <Image
-            src={recipe.imageUrl ?? "/steak.jpeg"}
+            src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/steak.jpeg"}
             alt={recipe.name}
             fill
             className="object-cover"
@@ -153,22 +154,22 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
             </span>
           </h2>
           <ul className="space-y-2">
-            {recipe.ingredients.map((ingredient) => (
-              <li
-                key={ingredient.id}
+            {recipe.ingredients.map((ingredient, index) => (
+                <li
+                key={`${ingredient.id}-${index}`}
                 className="flex items-start gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"
-              >
+                >
                 <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary/60" />
                 <div className="flex-1 min-w-0">
-                  <span className="text-base font-medium">{ingredient.name}</span>
+                  <span className="text-base font-medium">{toTitleCase(ingredient.name)}</span>
                   <span className="ml-1.5 text-base text-muted-foreground">
-                    {formatQuantity(ingredient.quantity, ingredient.abbreviation ?? ingredient.unitName)}
+                  {formatQuantity(ingredient.quantity, ingredient.abbreviation ?? ingredient.unitName)}
                   </span>
                   {ingredient.notes && (
-                    <p className="mt-0.5 text-sm text-muted-foreground">{ingredient.notes}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{ingredient.notes}</p>
                   )}
                 </div>
-              </li>
+                </li>
             ))}
           </ul>
         </section>
@@ -184,10 +185,10 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
                     {step.stepNumber}
                   </span>
                   <div className="flex-1 pb-1">
-                    <p className="text-base leading-relaxed">{step.description}</p>
+                    <p className="text-base leading-relaxed">{toSentenceCase(step.description)}</p>
                     {step.tip && (
                       <p className="mt-1.5 rounded-lg bg-secondary/60 px-3 py-2 text-sm text-secondary-foreground">
-                        Tip: {step.tip}
+                        Tip: {lowerFirst(step.tip)}
                       </p>
                     )}
                   </div>
