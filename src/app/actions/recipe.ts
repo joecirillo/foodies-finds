@@ -1,5 +1,6 @@
 "use server"
 
+import { revalidatePath } from "next/cache"
 import { addRecipe, updateRecipe } from "@/lib/api"
 import type { AddRecipePayload } from "@/types/recipe"
 
@@ -31,6 +32,7 @@ export const updateRecipeAction = async (
     if (!resultId) {
       return { ok: false, error: "Recipe was updated but no ID was returned" }
     }
+    revalidatePath(`/recipe/${resultId}`)
     return { ok: true, id: resultId }
   } catch (err) {
     const message =

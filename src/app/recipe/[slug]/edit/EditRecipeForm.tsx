@@ -292,6 +292,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
 
     if (result.ok) {
       router.push(`/recipe/${recipe.id}`)
+      router.refresh()
     } else {
       setSubmitError(result.error)
       setIsSubmitting(false)
