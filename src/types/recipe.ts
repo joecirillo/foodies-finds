@@ -57,6 +57,22 @@ export type AddStepInput = {
   tip: string | null
 }
 
+export type IngredientRow = {
+  key: number
+  name: string
+  unitId: number | null
+  quantity: number
+  notes: string
+  searchResults: { id: number; name: string }[]
+  dropdownOpen: boolean
+}
+
+export type StepRow = {
+  key: number
+  description: string
+  tip: string
+}
+
 export type AddRecipePayload = {
   name: string
   description: string | null

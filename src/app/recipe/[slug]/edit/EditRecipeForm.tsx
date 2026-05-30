@@ -7,9 +7,9 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { addRecipeAction as addRecipeAction } from "@/app/actions/recipe"
+import { updateRecipeAction } from "@/app/actions/recipe"
 import { toSentenceCase, lowerFirst } from "@/lib/text"
-import type { Unit, IngredientRow, StepRow } from "@/types/recipe"
+import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
 
@@ -30,43 +30,71 @@ const FieldError = ({ message }: { message?: string }) =>
 const textareaClass =
   "w-full min-w-0 rounded-xl border border-input bg-input/30 px-3 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 resize-none"
 
-export const RecipeForm = () => {
+export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const router = useRouter()
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
 
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [author, setAuthor] = useState("")
-  const [imageUrl, setImageUrl] = useState("")
-  const [preparationTime, setPreparationTime] = useState("")
-  const [cookingTime, setCookingTime] = useState("")
-  const [servings, setServings] = useState("")
-  const [calories, setCalories] = useState("")
+  const [name, setName] = useState(recipe.name)
+  const [description, setDescription] = useState(recipe.description ?? "")
+  const [author, setAuthor] = useState(recipe.author ?? "")
+  const [imageUrl, setImageUrl] = useState(recipe.imageUrl ?? "")
+  const [preparationTime, setPreparationTime] = useState(
+    recipe.preparationTime > 0 ? String(recipe.preparationTime) : "",
+  )
+  const [cookingTime, setCookingTime] = useState(
+    recipe.cookingTime > 0 ? String(recipe.cookingTime) : "",
+  )
+  const [servings, setServings] = useState(recipe.servings != null ? String(recipe.servings) : "")
+  const [calories, setCalories] = useState(recipe.calories != null ? String(recipe.calories) : "")
 
   const [cuisineQuery, setCuisineQuery] = useState("")
   const [cuisineResults, setCuisineResults] = useState<SearchResult[]>([])
   const [cuisineDropdownOpen, setCuisineDropdownOpen] = useState(false)
-  const [selectedCuisine, setSelectedCuisine] = useState<SearchResult | null>(null)
+  const [selectedCuisine, setSelectedCuisine] = useState<SearchResult | null>(
+    recipe.cuisine ?? null,
+  )
 
   const [tagQuery, setTagQuery] = useState("")
   const [tagResults, setTagResults] = useState<SearchResult[]>([])
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<SearchResult[]>([])
+  const [selectedTags, setSelectedTags] = useState<SearchResult[]>(recipe.tags)
 
-  const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    {
-      key: 0,
-      name: "",
-      unitId: null,
-      quantity: 1,
-      notes: "",
-      searchResults: [],
-      dropdownOpen: false,
-    },
-  ])
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(
+    recipe.ingredients.length > 0
+      ? recipe.ingredients.map((ing, i) => ({
+          key: i,
+          name: ing.name,
+          unitId: ing.unitId,
+          quantity: ing.quantity,
+          notes: ing.notes ?? "",
+          searchResults: [],
+          dropdownOpen: false,
+        }))
+      : [
+          {
+            key: 0,
+            name: "",
+            unitId: null,
+            quantity: 1,
+            notes: "",
+            searchResults: [],
+            dropdownOpen: false,
+          },
+        ],
+  )
 
-  const [steps, setSteps] = useState<StepRow[]>([{ key: 0, description: "", tip: "" }])
+  const [steps, setSteps] = useState<StepRow[]>(
+    recipe.steps.length > 0
+      ? [...recipe.steps]
+          .sort((a, b) => a.stepNumber - b.stepNumber)
+          .map((s, i) => ({
+            key: i,
+            description: s.description,
+            tip: s.tip ?? "",
+          }))
+      : [{ key: 0, description: "", tip: "" }],
+  )
 
   const [units, setUnits] = useState<Unit[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -76,11 +104,13 @@ export const RecipeForm = () => {
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
+    // keyCounter should be above the max index used during init
+    keyCounter.current = Math.max(recipe.ingredients.length, recipe.steps.length) + 1
     fetch("/api/units")
       .then((r) => r.json())
       .then((data: Unit[]) => setUnits(data))
       .catch(() => {})
-  }, [])
+  }, [recipe.ingredients.length, recipe.steps.length])
 
   const debounce = (key: string, fn: () => void, delay = 300) => {
     if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
@@ -210,7 +240,7 @@ export const RecipeForm = () => {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    const result = await addRecipeAction({
+    const result = await updateRecipeAction(recipe.id as number, {
       name: name.trim(),
       description: description.trim() || null,
       calories: calories ? parseInt(calories) : null,
@@ -240,7 +270,8 @@ export const RecipeForm = () => {
     })
 
     if (result.ok) {
-      router.push(`/recipe/${result.id}`)
+      router.push(`/recipe/${recipe.id}`)
+      router.refresh()
     } else {
       setSubmitError(result.error)
       setIsSubmitting(false)
@@ -251,15 +282,16 @@ export const RecipeForm = () => {
     <div className="min-h-screen bg-background pb-10">
       <div className="sticky top-0 z-10 flex items-center justify-between bg-background/90 px-4 py-3 backdrop-blur-sm border-b border-border">
         <Button
-          render={<Link href="/recipe" />}
+          render={<Link href={`/recipe/${recipe.id}`} />}
           nativeButton={false}
           variant="ghost"
           size="icon-sm"
         >
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
+        <span className="font-heading text-base font-semibold">Edit Recipe</span>
         <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="gap-1.5">
-          {isSubmitting ? "Saving…" : "Save Recipe"}
+          {isSubmitting ? "Saving…" : "Save Changes"}
         </Button>
       </div>
 
@@ -656,7 +688,7 @@ export const RecipeForm = () => {
             </div>
           )}
           <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
-            {isSubmitting ? "Saving…" : "Save Recipe"}
+            {isSubmitting ? "Saving…" : "Save Changes"}
           </Button>
         </div>
       </div>

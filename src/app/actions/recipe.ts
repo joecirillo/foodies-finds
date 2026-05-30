@@ -1,6 +1,7 @@
 "use server"
 
-import { addRecipe } from "@/lib/api"
+import { revalidatePath } from "next/cache"
+import { addRecipe, updateRecipe } from "@/lib/api"
 import type { AddRecipePayload } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
@@ -16,6 +17,25 @@ export const addRecipeAction = async (payload: AddRecipePayload): Promise<Action
     return { ok: true, id }
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to save recipe"
+    return { ok: false, error: message }
+  }
+}
+
+export const updateRecipeAction = async (
+  id: number,
+  payload: AddRecipePayload,
+): Promise<ActionResult> => {
+  try {
+    const result = await updateRecipe(id, payload)
+    console.log("Recipe updated with ID:", result)
+    const resultId = result?.id
+    if (!resultId) {
+      return { ok: false, error: "Recipe was updated but no ID was returned" }
+    }
+    revalidatePath(`/recipe/${resultId}`)
+    return { ok: true, id: resultId }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to update recipe"
     return { ok: false, error: message }
   }
 }
