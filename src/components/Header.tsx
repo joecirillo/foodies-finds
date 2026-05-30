@@ -15,7 +15,7 @@ export const Header = () => {
           </Link>
           <div className="flex items-center gap-3">
             <Button
-              render={<Link href="/recipe" />}
+              render={<Link href="/recipe/browse" />}
               nativeButton={false}
               variant="ghost"
               size="icon-sm"
@@ -48,13 +48,13 @@ export const Header = () => {
         </div>
         <div className="flex items-center gap-3">
           <Button
-            render={<Link href="/recipe" />}
+            render={<Link href="/recipe/browse" />}
             nativeButton={false}
             variant="ghost"
             size="lg"
             className="text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
           >
-            View Recipes
+            Browse Recipes
           </Button>
           <Button
             render={<Link href="/recipe/add" />}
