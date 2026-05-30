@@ -6,7 +6,7 @@ export async function GET(request: Request) {
 
   const res = await fetch(
     `${process.env.API_URL}/cuisine/search?query=${encodeURIComponent(query)}`,
-    { headers: { "x-api-key": process.env.API_KEY ?? "" } }
+    { headers: { "x-api-key": process.env.API_KEY ?? "" } },
   )
 
   if (!res.ok) {

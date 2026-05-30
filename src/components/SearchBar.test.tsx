@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import { render, screen, fireEvent, waitFor } from "@testing-library/react"
-import userEvent from "@testing-library/user-event"
+import { render, screen, fireEvent } from "@testing-library/react"
 import { SearchBar } from "./SearchBar"
 
 vi.mock("@/hooks/useRecipeSearch", () => ({
@@ -34,7 +33,10 @@ describe("SearchBar", () => {
     mockUseRecipeSearch.mockReturnValue({
       query: "pa",
       setQuery,
-      results: [{ id: 1, name: "Pasta" }, { id: 2, name: "Pancakes" }],
+      results: [
+        { id: 1, name: "Pasta" },
+        { id: 2, name: "Pancakes" },
+      ],
       loading: false,
       error: null,
     })
@@ -82,7 +84,7 @@ describe("SearchBar", () => {
       <div>
         <SearchBar />
         <button>Outside</button>
-      </div>
+      </div>,
     )
 
     fireEvent.mouseDown(screen.getByText("Outside"))

@@ -5,9 +5,7 @@ import type { AddRecipePayload } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
 
-export const addRecipeAction = async (
-  payload: AddRecipePayload
-): Promise<ActionResult> => {
+export const addRecipeAction = async (payload: AddRecipePayload): Promise<ActionResult> => {
   try {
     const result = await addRecipe(payload)
     console.log("Recipe added with ID:", result)
@@ -17,8 +15,7 @@ export const addRecipeAction = async (
     }
     return { ok: true, id }
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to save recipe"
+    const message = err instanceof Error ? err.message : "Failed to save recipe"
     return { ok: false, error: message }
   }
 }

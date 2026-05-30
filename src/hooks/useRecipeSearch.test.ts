@@ -44,7 +44,9 @@ describe("useRecipeSearch", () => {
   it("sets loading true while fetching, false after", async () => {
     let resolve: (v: Array<{ id: number; name: string }>) => void
     mockSearchRecipes.mockReturnValue(
-      new Promise((r) => { resolve = r })
+      new Promise((r) => {
+        resolve = r
+      }),
     )
     const { result } = renderHook(() => useRecipeSearch())
 
@@ -52,7 +54,9 @@ describe("useRecipeSearch", () => {
     await act(() => vi.advanceTimersByTimeAsync(300))
     expect(result.current.loading).toBe(true)
 
-    await act(async () => { resolve([{ id: 1, name: "Pasta" }]) })
+    await act(async () => {
+      resolve([{ id: 1, name: "Pasta" }])
+    })
     expect(result.current.loading).toBe(false)
   })
 

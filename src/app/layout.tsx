@@ -1,22 +1,22 @@
-import type { Metadata } from "next";
-import { Nunito, Inter } from "next/font/google";
-import "./globals.css";
-import { cn } from "@/lib/utils";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
+import type { Metadata } from "next"
+import { Nunito, Inter } from "next/font/google"
+import "./globals.css"
+import { cn } from "@/lib/utils"
+import { Header } from "@/components/Header"
+import { Footer } from "@/components/Footer"
 
-const nunito = Nunito({ subsets: ["latin"], variable: "--font-sans" });
-const inter = Inter({ subsets: ["latin"], variable: "--font-secondary" });
+const nunito = Nunito({ subsets: ["latin"], variable: "--font-sans" })
+const inter = Inter({ subsets: ["latin"], variable: "--font-secondary" })
 
 export const metadata: Metadata = {
   title: "Foodies Finds",
   description: "Track your favorite family recipes",
-};
+}
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html lang="en" className={cn("h-full antialiased font-sans", nunito.variable, inter.variable)}>
@@ -26,5 +26,5 @@ export default function RootLayout({
         <Footer />
       </body>
     </html>
-  );
+  )
 }
