@@ -4,11 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
-import {
-  ArrowLeft02Icon,
-  PlusSignIcon,
-  Delete02Icon,
-} from "@hugeicons/core-free-icons"
+import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { addRecipeAction as addRecipeAction } from "@/app/actions/recipe"
@@ -37,13 +33,7 @@ const SectionHeading = ({ children }: { children: React.ReactNode }) => (
   <h2 className="font-heading text-lg font-semibold mb-3">{children}</h2>
 )
 
-const FieldLabel = ({
-  children,
-  required,
-}: {
-  children: React.ReactNode
-  required?: boolean
-}) => (
+const FieldLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
   <label className="block text-sm font-medium text-foreground mb-1.5">
     {children}
     {required && <span className="text-destructive ml-0.5">*</span>}
@@ -51,9 +41,7 @@ const FieldLabel = ({
 )
 
 const FieldError = ({ message }: { message?: string }) =>
-  message ? (
-    <p className="mt-1 text-xs text-destructive">{message}</p>
-  ) : null
+  message ? <p className="mt-1 text-xs text-destructive">{message}</p> : null
 
 const textareaClass =
   "w-full min-w-0 rounded-xl border border-input bg-input/30 px-3 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 resize-none"
@@ -75,9 +63,7 @@ export const RecipeForm = () => {
   const [cuisineQuery, setCuisineQuery] = useState("")
   const [cuisineResults, setCuisineResults] = useState<SearchResult[]>([])
   const [cuisineDropdownOpen, setCuisineDropdownOpen] = useState(false)
-  const [selectedCuisine, setSelectedCuisine] = useState<SearchResult | null>(
-    null
-  )
+  const [selectedCuisine, setSelectedCuisine] = useState<SearchResult | null>(null)
 
   const [tagQuery, setTagQuery] = useState("")
   const [tagResults, setTagResults] = useState<SearchResult[]>([])
@@ -96,18 +82,14 @@ export const RecipeForm = () => {
     },
   ])
 
-  const [steps, setSteps] = useState<StepRow[]>([
-    { key: 0, description: "", tip: "" },
-  ])
+  const [steps, setSteps] = useState<StepRow[]>([{ key: 0, description: "", tip: "" }])
 
   const [units, setUnits] = useState<Unit[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {}
-  )
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
     fetch("/api/units")
@@ -129,9 +111,7 @@ export const RecipeForm = () => {
       return
     }
     debounce("cuisine", async () => {
-      const res = await fetch(
-        `/api/search/cuisines?query=${encodeURIComponent(q)}`
-      )
+      const res = await fetch(`/api/search/cuisines?query=${encodeURIComponent(q)}`)
       const data: SearchResult[] = await res.json()
       setCuisineResults(data)
       setCuisineDropdownOpen(true)
@@ -146,9 +126,7 @@ export const RecipeForm = () => {
       return
     }
     debounce("tag", async () => {
-      const res = await fetch(
-        `/api/search/tags?query=${encodeURIComponent(q)}`
-      )
+      const res = await fetch(`/api/search/tags?query=${encodeURIComponent(q)}`)
       const data: SearchResult[] = await res.json()
       setTagResults(data)
       setTagDropdownOpen(true)
@@ -156,9 +134,7 @@ export const RecipeForm = () => {
   }
 
   const updateIngredient = (index: number, updates: Partial<IngredientRow>) => {
-    setIngredients((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, ...updates } : row))
-    )
+    setIngredients((prev) => prev.map((row, i) => (i === index ? { ...row, ...updates } : row)))
   }
 
   const handleIngredientNameChange = (index: number, query: string) => {
@@ -169,14 +145,12 @@ export const RecipeForm = () => {
     })
     if (!query.trim()) return
     debounce(`ingredient-${index}`, async () => {
-      const res = await fetch(
-        `/api/search/ingredients?query=${encodeURIComponent(query)}`
-      )
+      const res = await fetch(`/api/search/ingredients?query=${encodeURIComponent(query)}`)
       const data: SearchResult[] = await res.json()
       setIngredients((prev) =>
         prev.map((row, i) =>
-          i === index ? { ...row, searchResults: data, dropdownOpen: true } : row
-        )
+          i === index ? { ...row, searchResults: data, dropdownOpen: true } : row,
+        ),
       )
     })
   }
@@ -209,9 +183,7 @@ export const RecipeForm = () => {
   }
 
   const updateStep = (index: number, updates: Partial<StepRow>) => {
-    setSteps((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, ...updates } : row))
-    )
+    setSteps((prev) => prev.map((row, i) => (i === index ? { ...row, ...updates } : row)))
   }
 
   const validate = () => {
@@ -227,12 +199,9 @@ export const RecipeForm = () => {
     if (cookingTime !== "" && (isNaN(cookTime) || cookTime < 0))
       newErrors.cookingTime = "Cooking time must be 0 or more"
 
-    const validIngredients = ingredients.filter(
-      (i) => i.name.trim() && i.quantity > 0
-    )
+    const validIngredients = ingredients.filter((i) => i.name.trim() && i.quantity > 0)
     if (validIngredients.length === 0)
-      newErrors.ingredients =
-        "At least one ingredient with a name and quantity is required"
+      newErrors.ingredients = "At least one ingredient with a name and quantity is required"
 
     const validSteps = steps.filter((s) => s.description.trim())
     if (validSteps.length === 0)
@@ -305,12 +274,7 @@ export const RecipeForm = () => {
         >
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-          size="sm"
-          className="gap-1.5"
-        >
+        <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="gap-1.5">
           {isSubmitting ? "Saving…" : "Save Recipe"}
         </Button>
       </div>
@@ -439,9 +403,7 @@ export const RecipeForm = () => {
               <Input
                 value={cuisineQuery}
                 onChange={(e) => handleCuisineQuery(e.target.value)}
-                onBlur={() =>
-                  setTimeout(() => setCuisineDropdownOpen(false), 150)
-                }
+                onBlur={() => setTimeout(() => setCuisineDropdownOpen(false), 150)}
                 placeholder="Search cuisines…"
               />
               {cuisineDropdownOpen && cuisineResults.length > 0 && (
@@ -479,11 +441,7 @@ export const RecipeForm = () => {
                   {tag.name}
                   <button
                     type="button"
-                    onClick={() =>
-                      setSelectedTags((prev) =>
-                        prev.filter((t) => t.id !== tag.id)
-                      )
-                    }
+                    onClick={() => setSelectedTags((prev) => prev.filter((t) => t.id !== tag.id))}
                     className="flex items-center text-secondary-foreground/70 hover:text-secondary-foreground"
                     aria-label={`Remove tag ${tag.name}`}
                   >
@@ -557,39 +515,32 @@ export const RecipeForm = () => {
                 <div className="relative">
                   <Input
                     value={ingredient.name}
-                    onChange={(e) =>
-                      handleIngredientNameChange(index, e.target.value)
-                    }
+                    onChange={(e) => handleIngredientNameChange(index, e.target.value)}
                     onBlur={() =>
-                      setTimeout(
-                        () =>
-                          updateIngredient(index, { dropdownOpen: false }),
-                        150
-                      )
+                      setTimeout(() => updateIngredient(index, { dropdownOpen: false }), 150)
                     }
                     placeholder="Ingredient name"
                   />
-                  {ingredient.dropdownOpen &&
-                    ingredient.searchResults.length > 0 && (
-                      <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
-                        {ingredient.searchResults.map((r) => (
-                          <button
-                            key={r.id}
-                            type="button"
-                            onMouseDown={() => {
-                              updateIngredient(index, {
-                                name: r.name,
-                                dropdownOpen: false,
-                                searchResults: [],
-                              })
-                            }}
-                            className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted"
-                          >
-                            {r.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  {ingredient.dropdownOpen && ingredient.searchResults.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
+                      {ingredient.searchResults.map((r) => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          onMouseDown={() => {
+                            updateIngredient(index, {
+                              name: r.name,
+                              dropdownOpen: false,
+                              searchResults: [],
+                            })
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted"
+                        >
+                          {r.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
@@ -631,9 +582,7 @@ export const RecipeForm = () => {
                   <FieldLabel>Notes</FieldLabel>
                   <Input
                     value={ingredient.notes}
-                    onChange={(e) =>
-                      updateIngredient(index, { notes: e.target.value })
-                    }
+                    onChange={(e) => updateIngredient(index, { notes: e.target.value })}
                     placeholder="e.g. finely chopped (optional)"
                   />
                 </div>
@@ -657,9 +606,7 @@ export const RecipeForm = () => {
           <SectionHeading>
             Steps
             {errors.steps && (
-              <span className="ml-2 text-sm font-normal text-destructive">
-                {errors.steps}
-              </span>
+              <span className="ml-2 text-sm font-normal text-destructive">{errors.steps}</span>
             )}
           </SectionHeading>
           <div className="space-y-3">
@@ -672,9 +619,7 @@ export const RecipeForm = () => {
                   <div className="flex items-start justify-between gap-2">
                     <textarea
                       value={step.description}
-                      onChange={(e) =>
-                        updateStep(index, { description: e.target.value })
-                      }
+                      onChange={(e) => updateStep(index, { description: e.target.value })}
                       placeholder="Describe this step…"
                       rows={2}
                       className={`${textareaClass} flex-1`}
@@ -692,9 +637,7 @@ export const RecipeForm = () => {
                   </div>
                   <Input
                     value={step.tip}
-                    onChange={(e) =>
-                      updateStep(index, { tip: e.target.value })
-                    }
+                    onChange={(e) => updateStep(index, { tip: e.target.value })}
                     placeholder="Tip (optional)"
                   />
                 </div>
@@ -728,12 +671,7 @@ export const RecipeForm = () => {
               {submitError}
             </div>
           )}
-          <Button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="w-full"
-            size="lg"
-          >
+          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
             {isSubmitting ? "Saving…" : "Save Recipe"}
           </Button>
         </div>

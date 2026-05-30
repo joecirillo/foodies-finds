@@ -29,9 +29,7 @@ describe("toSentenceCase", () => {
   })
 
   it("capitalizes each sentence separated by periods", () => {
-    expect(toSentenceCase("stir the pot. add salt. enjoy.")).toBe(
-      "Stir the pot. Add salt. Enjoy."
-    )
+    expect(toSentenceCase("stir the pot. add salt. enjoy.")).toBe("Stir the pot. Add salt. Enjoy.")
   })
 
   it("handles exclamation and question marks", () => {
@@ -39,9 +37,7 @@ describe("toSentenceCase", () => {
   })
 
   it("passes through already correct input", () => {
-    expect(toSentenceCase("Stir the pot. Add salt.")).toBe(
-      "Stir the pot. Add salt."
-    )
+    expect(toSentenceCase("Stir the pot. Add salt.")).toBe("Stir the pot. Add salt.")
   })
 
   it("returns empty string for empty input", () => {

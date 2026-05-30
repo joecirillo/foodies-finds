@@ -2,7 +2,13 @@ import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft02Icon, Edit02Icon, TimeIcon, FireIcon, UserIcon } from "@hugeicons/core-free-icons"
+import {
+  ArrowLeft02Icon,
+  Edit02Icon,
+  TimeIcon,
+  FireIcon,
+  UserIcon,
+} from "@hugeicons/core-free-icons"
 import { getRecipe } from "@/lib/api"
 import { formatMinutes, formatQuantity } from "@/lib/format"
 import { toTitleCase, toSentenceCase, lowerFirst } from "@/lib/text"
@@ -155,21 +161,24 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
           </h2>
           <ul className="space-y-2">
             {recipe.ingredients.map((ingredient, index) => (
-                <li
+              <li
                 key={`${ingredient.id}-${index}`}
                 className="flex items-start gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"
-                >
+              >
                 <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary/60" />
                 <div className="flex-1 min-w-0">
                   <span className="text-base font-medium">{toTitleCase(ingredient.name)}</span>
                   <span className="ml-1.5 text-base text-muted-foreground">
-                  {formatQuantity(ingredient.quantity, ingredient.abbreviation ?? ingredient.unitName)}
+                    {formatQuantity(
+                      ingredient.quantity,
+                      ingredient.abbreviation ?? ingredient.unitName,
+                    )}
                   </span>
                   {ingredient.notes && (
-                  <p className="mt-0.5 text-sm text-muted-foreground">{ingredient.notes}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">{ingredient.notes}</p>
                   )}
                 </div>
-                </li>
+              </li>
             ))}
           </ul>
         </section>

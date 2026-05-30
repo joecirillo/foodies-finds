@@ -1,8 +1,8 @@
-import Link from "next/link";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { CookBookIcon, Add01Icon } from "@hugeicons/core-free-icons";
-import { Button } from "@/components/ui/button";
-import { SearchBar } from "@/components/SearchBar";
+import Link from "next/link"
+import { HugeiconsIcon } from "@hugeicons/react"
+import { CookBookIcon, Add01Icon } from "@hugeicons/core-free-icons"
+import { Button } from "@/components/ui/button"
+import { SearchBar } from "@/components/SearchBar"
 
 export const Header = () => {
   return (
@@ -67,5 +67,5 @@ export const Header = () => {
         </div>
       </div>
     </header>
-  );
+  )
 }

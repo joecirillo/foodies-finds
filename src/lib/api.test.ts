@@ -42,9 +42,7 @@ describe("addRecipe", () => {
   it("propagates network failures", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
-    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toThrow(
-      "Network error"
-    )
+    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toThrow("Network error")
   })
 })
 

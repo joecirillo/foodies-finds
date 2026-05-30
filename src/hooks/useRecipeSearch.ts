@@ -31,5 +31,11 @@ export const useRecipeSearch = () => {
   }, [query])
 
   const active = query.length >= 2
-  return { query, setQuery, results: active ? results : [], loading: active ? loading : false, error: active ? error : null }
+  return {
+    query,
+    setQuery,
+    results: active ? results : [],
+    loading: active ? loading : false,
+    error: active ? error : null,
+  }
 }

@@ -37,11 +37,9 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export const getRecipe = (id: number | string) =>
-  apiFetch<Recipe>(`/recipe/get/${id}`)
+export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipe/get/${id}`)
 
-export const addRecipe = (payload: AddRecipePayload) =>
-  apiPost<Recipe>("/recipe/save", payload)
+export const addRecipe = (payload: AddRecipePayload) => apiPost<Recipe>("/recipe/save", payload)
 
 export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]> => {
   const res = await fetch(`/api/search/recipes?name=${encodeURIComponent(name)}`)
