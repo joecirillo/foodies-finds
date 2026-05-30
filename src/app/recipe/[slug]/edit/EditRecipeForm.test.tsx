@@ -76,7 +76,7 @@ beforeEach(() => {
     vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([]),
-    })
+    }),
   )
 })
 
@@ -138,7 +138,7 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       expect(
-        screen.getByText("Preparation time must be at least 1 minute", { selector: "li" })
+        screen.getByText("Preparation time must be at least 1 minute", { selector: "li" }),
       ).toBeInTheDocument()
     })
 
@@ -152,7 +152,7 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       expect(
-        screen.getByText("Preparation time must be at least 1 minute", { selector: "li" })
+        screen.getByText("Preparation time must be at least 1 minute", { selector: "li" }),
       ).toBeInTheDocument()
     })
 
@@ -165,7 +165,7 @@ describe("EditRecipeForm", () => {
       expect(
         screen.getByText("At least one ingredient with a name and quantity is required", {
           selector: "li",
-        })
+        }),
       ).toBeInTheDocument()
     })
 
@@ -176,7 +176,7 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       expect(
-        screen.getByText("At least one step with a description is required", { selector: "li" })
+        screen.getByText("At least one step with a description is required", { selector: "li" }),
       ).toBeInTheDocument()
     })
 
@@ -206,16 +206,14 @@ describe("EditRecipeForm", () => {
             name: "Spaghetti Bolognese",
             preparationTime: 15,
             cookingTime: 30,
-            ingredients: [
-              expect.objectContaining({ name: "spaghetti", quantity: 200 }),
-            ],
+            ingredients: [expect.objectContaining({ name: "spaghetti", quantity: 200 })],
             steps: [
               expect.objectContaining({
                 stepNumber: 1,
                 description: "Boil the pasta",
               }),
             ],
-          })
+          }),
         )
       })
     })
@@ -244,9 +242,7 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
-        expect(
-          screen.getByText("Something went wrong on the server")
-        ).toBeInTheDocument()
+        expect(screen.getByText("Something went wrong on the server")).toBeInTheDocument()
       })
     })
 
@@ -290,7 +286,7 @@ describe("EditRecipeForm", () => {
           1,
           expect.objectContaining({
             ingredients: [expect.objectContaining({ name: "spaghetti" })],
-          })
+          }),
         )
       })
     })
@@ -300,9 +296,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       const recipe: Recipe = {
         ...baseRecipe,
-        steps: [
-          { stepId: 1, stepNumber: 1, description: "boil the pasta", tip: null },
-        ],
+        steps: [{ stepId: 1, stepNumber: 1, description: "boil the pasta", tip: null }],
       }
       render(<EditRecipeForm recipe={recipe} />)
 
@@ -313,7 +307,7 @@ describe("EditRecipeForm", () => {
           1,
           expect.objectContaining({
             steps: [expect.objectContaining({ description: "Boil the pasta" })],
-          })
+          }),
         )
       })
     })

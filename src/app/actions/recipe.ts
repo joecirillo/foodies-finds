@@ -23,7 +23,7 @@ export const addRecipeAction = async (payload: AddRecipePayload): Promise<Action
 
 export const updateRecipeAction = async (
   id: number,
-  payload: AddRecipePayload
+  payload: AddRecipePayload,
 ): Promise<ActionResult> => {
   try {
     const result = await updateRecipe(id, payload)
@@ -35,8 +35,7 @@ export const updateRecipeAction = async (
     revalidatePath(`/recipe/${resultId}`)
     return { ok: true, id: resultId }
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to update recipe"
+    const message = err instanceof Error ? err.message : "Failed to update recipe"
     return { ok: false, error: message }
   }
 }
