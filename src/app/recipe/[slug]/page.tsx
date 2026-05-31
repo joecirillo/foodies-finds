@@ -49,7 +49,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
     <div className="min-h-screen bg-background pb-10">
       <div className="sticky top-0 z-10 flex items-center justify-between bg-background/90 px-4 py-3 backdrop-blur-sm border-b border-border">
         <Button
-          render={<Link href="/recipe" />}
+          render={<Link href="/recipe/browse" />}
           nativeButton={false}
           variant="ghost"
           size="icon-sm"
@@ -100,7 +100,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
 
         <div className="relative mt-4 w-full aspect-4/3 overflow-hidden rounded-2xl bg-muted">
           <Image
-            src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/steak.jpeg"}
+            src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/no-image.jpeg"}
             alt={recipe.name}
             fill
             className="object-cover"

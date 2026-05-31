@@ -39,6 +39,8 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
 
 export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipe/get/${id}`)
 
+export const listRecipes = () => apiFetch<RecipeSearchResult[]>("/recipe/list")
+
 async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
     method: "PATCH",
