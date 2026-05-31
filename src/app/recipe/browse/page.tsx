@@ -28,12 +28,7 @@ const BrowsePage = async () => {
               className="rounded-2xl overflow-hidden bg-card ring-1 ring-foreground/10 shadow-sm active:opacity-80 transition-opacity"
             >
               <div className="relative w-full aspect-square bg-muted">
-                <Image
-                  src="/steak.jpeg"
-                  alt={recipe.name}
-                  fill
-                  className="object-cover"
-                />
+                <Image src="/no-image.jpeg" alt={recipe.name} fill className="object-cover" />
               </div>
               <div className="p-3">
                 <p className="text-sm font-medium leading-snug text-foreground line-clamp-2">

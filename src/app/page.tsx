@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { RecipeOfTheDay } from "@/components/RecipeOfTheDay"
+import { RecipeOfTheDay } from "@/components/FeaturedRecipe"
 import { listRecipes, getRecipe } from "@/lib/api"
 import { pickRandom } from "@/lib/utils/random"
 import type { Recipe } from "@/types/recipe"
@@ -23,8 +23,8 @@ const HomePage = async () => {
           Foodies Finds
         </h1>
         <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-          Your personal collection of homemade recipes. Save the dishes you love, share them with
-          family, and never lose a great meal again.
+          A personal collection of homemade recipes. Save the dishes you love, share them with
+          friends & family, and never lose a great meal again.
         </p>
         <Button
           render={<Link href="/recipe/browse" />}
@@ -39,7 +39,7 @@ const HomePage = async () => {
       {initialRecipe && (
         <section>
           <h2 className="mb-4 font-heading text-xl font-semibold text-foreground">
-            Recipe of the Day
+            Featured Recipe
           </h2>
           <RecipeOfTheDay initialRecipe={initialRecipe} />
         </section>

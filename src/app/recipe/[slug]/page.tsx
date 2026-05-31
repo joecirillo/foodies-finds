@@ -100,7 +100,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
 
         <div className="relative mt-4 w-full aspect-4/3 overflow-hidden rounded-2xl bg-muted">
           <Image
-            src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/steak.jpeg"}
+            src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/no-image.jpeg"}
             alt={recipe.name}
             fill
             className="object-cover"

@@ -46,6 +46,33 @@ describe("addRecipe", () => {
   })
 })
 
+describe("listRecipes", () => {
+  it("unwraps body.data on success", async () => {
+    const { listRecipes } = await import("./api")
+    const list = [
+      { id: 1, name: "Pasta" },
+      { id: 2, name: "Tacos" },
+    ]
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: list }),
+    })
+
+    const result = await listRecipes()
+    expect(result).toEqual(list)
+  })
+
+  it("throws Error with status code on non-ok response", async () => {
+    const { listRecipes } = await import("./api")
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+
+    await expect(listRecipes()).rejects.toMatchObject({
+      message: "API 500",
+      code: "500",
+    })
+  })
+})
+
 describe("getRecipe", () => {
   it("unwraps body.data on success", async () => {
     const recipe = { id: 7, name: "Tacos" }

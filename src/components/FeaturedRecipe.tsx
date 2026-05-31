@@ -33,7 +33,7 @@ export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => 
     <div className="rounded-2xl overflow-hidden bg-card ring-1 ring-foreground/10 shadow-sm">
       <div className="relative w-full aspect-4/3 bg-muted">
         <Image
-          src={currentRecipe.imageUrl?.trim() ? currentRecipe.imageUrl : "/steak.jpeg"}
+          src={currentRecipe.imageUrl?.trim() ? currentRecipe.imageUrl : "/no-image.jpeg"}
           alt={currentRecipe.name}
           fill
           className="object-cover"
