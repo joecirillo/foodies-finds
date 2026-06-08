@@ -75,3 +75,30 @@ export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]>
   }
   return res.json()
 }
+
+export const filterRecipes = async (params: {
+  name?: string
+  cuisineId?: number
+  tagId?: number
+  ingredientId?: number
+}): Promise<RecipeSearchResult[]> => {
+  const qs = new URLSearchParams()
+  if (params.name) qs.set("name", params.name)
+  if (params.cuisineId) qs.set("cuisineId", String(params.cuisineId))
+  if (params.tagId) qs.set("tagId", String(params.tagId))
+  if (params.ingredientId) qs.set("ingredientId", String(params.ingredientId))
+
+  const res = await fetch(`${process.env.API_URL}/recipe/search?${qs}`, {
+    headers: { "x-api-key": process.env.API_KEY ?? "" },
+    cache: "no-store",
+  })
+
+  if (!res.ok) {
+    const err = new Error(`API ${res.status}`)
+    ;(err as NodeJS.ErrnoException).code = String(res.status)
+    throw err
+  }
+
+  const body: ApiResponse<RecipeSearchResult[]> = await res.json()
+  return body.data
+}
