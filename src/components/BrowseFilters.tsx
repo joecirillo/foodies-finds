@@ -62,14 +62,6 @@ const FilterPill = ({
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<FilterOption[]>([])
 
-  const handleOpenChange = (value: boolean) => {
-    if (!value) {
-      setQuery("")
-      setResults([])
-    }
-    setOpen(value)
-  }
-
   useEffect(() => {
     if (!open) return
 

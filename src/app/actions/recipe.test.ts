@@ -52,11 +52,23 @@ describe("addRecipeAction", () => {
     })
   })
 
-  it("returns error message when addRecipe throws an Error", async () => {
-    mockAddRecipe.mockRejectedValueOnce(new Error("API 500"))
+  it("returns a generic error when addRecipe throws a 500 API error", async () => {
+    const err = Object.assign(new Error("API 500"), { code: "500" })
+    mockAddRecipe.mockRejectedValueOnce(err)
 
     const result = await addRecipeAction({ name: "Pizza" } as AddRecipePayload)
-    expect(result).toEqual({ ok: false, error: "API 500" })
+    expect(result).toEqual({
+      ok: false,
+      error: "Something went wrong on our end. Please try again.",
+    })
+  })
+
+  it("returns the API error message when addRecipe throws a non-500 error", async () => {
+    const err = Object.assign(new Error("API 400"), { code: "400" })
+    mockAddRecipe.mockRejectedValueOnce(err)
+
+    const result = await addRecipeAction({ name: "Pizza" } as AddRecipePayload)
+    expect(result).toEqual({ ok: false, error: "API 400" })
   })
 
   it("returns fallback error when thrown value is not an Error instance", async () => {
@@ -110,8 +122,20 @@ describe("updateRecipeAction", () => {
     })
   })
 
-  it("returns error message when updateRecipe throws an Error", async () => {
-    mockUpdateRecipe.mockRejectedValueOnce(new Error("API 503"))
+  it("returns a generic error when updateRecipe throws a 500 API error", async () => {
+    const err = Object.assign(new Error("API 500"), { code: "500" })
+    mockUpdateRecipe.mockRejectedValueOnce(err)
+
+    const result = await updateRecipeAction(7, { name: "Pizza" } as AddRecipePayload)
+    expect(result).toEqual({
+      ok: false,
+      error: "Something went wrong on our end. Please try again.",
+    })
+  })
+
+  it("returns the API error message when updateRecipe throws a non-500 error", async () => {
+    const err = Object.assign(new Error("API 503"), { code: "503" })
+    mockUpdateRecipe.mockRejectedValueOnce(err)
 
     const result = await updateRecipeAction(7, { name: "Pizza" } as AddRecipePayload)
     expect(result).toEqual({ ok: false, error: "API 503" })
@@ -125,7 +149,8 @@ describe("updateRecipeAction", () => {
   })
 
   it("does not call revalidatePath when update fails", async () => {
-    mockUpdateRecipe.mockRejectedValueOnce(new Error("API 500"))
+    const err = Object.assign(new Error("API 500"), { code: "500" })
+    mockUpdateRecipe.mockRejectedValueOnce(err)
 
     await updateRecipeAction(7, { name: "Pizza" } as AddRecipePayload)
     expect(mockRevalidatePath).not.toHaveBeenCalled()

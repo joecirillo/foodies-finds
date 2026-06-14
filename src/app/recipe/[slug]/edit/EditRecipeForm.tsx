@@ -325,7 +325,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
               <Input
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="e.g. Grandma Rose"
+                placeholder="e.g. Nana"
               />
             </div>
           </div>
@@ -342,7 +342,6 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 min={1}
                 value={preparationTime}
                 onChange={(e) => setPreparationTime(e.target.value)}
-                placeholder="15"
                 aria-invalid={!!errors.preparationTime}
               />
               <FieldError message={errors.preparationTime} />
@@ -354,7 +353,6 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 min={0}
                 value={cookingTime}
                 onChange={(e) => setCookingTime(e.target.value)}
-                placeholder="30"
                 aria-invalid={!!errors.cookingTime}
               />
               <FieldError message={errors.cookingTime} />
@@ -366,7 +364,6 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 min={1}
                 value={servings}
                 onChange={(e) => setServings(e.target.value)}
-                placeholder="4"
               />
             </div>
             <div>
@@ -376,7 +373,6 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 min={0}
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
-                placeholder="450"
               />
             </div>
           </div>

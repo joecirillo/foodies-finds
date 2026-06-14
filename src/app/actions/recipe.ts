@@ -16,6 +16,10 @@ export const addRecipeAction = async (payload: AddRecipePayload): Promise<Action
     }
     return { ok: true, id }
   } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code === "500") {
+      return { ok: false, error: "Something went wrong on our end. Please try again." }
+    }
     const message = err instanceof Error ? err.message : "Failed to save recipe"
     return { ok: false, error: message }
   }
@@ -35,6 +39,10 @@ export const updateRecipeAction = async (
     revalidatePath(`/recipe/${resultId}`)
     return { ok: true, id: resultId }
   } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code
+    if (code === "500") {
+      return { ok: false, error: "Something went wrong on our end. Please try again." }
+    }
     const message = err instanceof Error ? err.message : "Failed to update recipe"
     return { ok: false, error: message }
   }

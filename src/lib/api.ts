@@ -29,12 +29,15 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
   })
 
   if (!res.ok) {
-    const err = new Error(`API ${res.status}`)
+    const body = await res.json().catch(() => null)
+    const message = body?.message ?? `API ${res.status}`
+    const err = new Error(message)
     ;(err as NodeJS.ErrnoException).code = String(res.status)
     throw err
   }
 
-  return res.json() as Promise<T>
+  const body: ApiResponse<T> = await res.json()
+  return body.data
 }
 
 export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipe/get/${id}`)
