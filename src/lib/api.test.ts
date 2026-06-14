@@ -14,15 +14,32 @@ describe("addRecipe", () => {
     const recipe = { id: 42, name: "Pasta" }
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve(recipe),
+      json: () => Promise.resolve({ data: recipe }),
     })
 
     const result = await addRecipe({ name: "Pasta" } as AddRecipePayload)
     expect(result).toEqual(recipe)
   })
 
-  it("throws Error with status code on non-ok response", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 400 })
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Ingredient not found" }),
+    })
+
+    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
+      message: "Ingredient not found",
+      code: "400",
+    })
+  })
+
+  it("throws Error with status code when the body has no message", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({}),
+    })
 
     await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
       message: "API 400",
@@ -30,8 +47,12 @@ describe("addRecipe", () => {
     })
   })
 
-  it("throws Error with status code on 500 response", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new Error("not json")),
+    })
 
     await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
       message: "API 500",
