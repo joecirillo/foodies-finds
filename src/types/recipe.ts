@@ -80,7 +80,7 @@ export type AddRecipePayload = {
   servings: number | null
   cookingTime: number
   preparationTime: number
-  cuisine: { id: number; name: string } | null
+  cuisine: { id: number | null; name: string } | null
   tags: { id: number | null; name: string }[]
   author: string | null
   ingredients: AddIngredientInput[]

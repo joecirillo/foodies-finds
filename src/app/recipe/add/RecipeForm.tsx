@@ -12,9 +12,19 @@ import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 
 type SearchResult = { id: number; name: string }
+type SearchResultOption = { id: number | null; name: string }
 
-const SectionHeading = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="font-heading text-lg font-semibold mb-3">{children}</h2>
+const SectionHeading = ({
+  children,
+  required,
+}: {
+  children: React.ReactNode
+  required?: boolean
+}) => (
+  <h2 className="font-heading text-lg font-semibold mb-3">
+    {children}
+    {required && <span className="text-destructive ml-0.5">*</span>}
+  </h2>
 )
 
 const FieldLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
@@ -47,12 +57,12 @@ export const RecipeForm = () => {
   const [cuisineQuery, setCuisineQuery] = useState("")
   const [cuisineResults, setCuisineResults] = useState<SearchResult[]>([])
   const [cuisineDropdownOpen, setCuisineDropdownOpen] = useState(false)
-  const [selectedCuisine, setSelectedCuisine] = useState<SearchResult | null>(null)
+  const [selectedCuisine, setSelectedCuisine] = useState<SearchResultOption | null>(null)
 
   const [tagQuery, setTagQuery] = useState("")
   const [tagResults, setTagResults] = useState<SearchResult[]>([])
   const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<SearchResult[]>([])
+  const [selectedTags, setSelectedTags] = useState<SearchResultOption[]>([])
 
   const [ingredients, setIngredients] = useState<IngredientRow[]>([
     {
@@ -183,9 +193,20 @@ export const RecipeForm = () => {
     if (cookingTime !== "" && (isNaN(cookTime) || cookTime < 0))
       newErrors.cookingTime = "Cooking time must be 0 or more"
 
+    const servingsNum = parseInt(servings)
+    if (!servings || isNaN(servingsNum) || servingsNum < 1)
+      newErrors.servings = "Servings is required"
+
+    if (!selectedCuisine) newErrors.cuisine = "Cuisine is required"
+
     const validIngredients = ingredients.filter((i) => i.name.trim() && i.quantity > 0)
     if (validIngredients.length === 0)
       newErrors.ingredients = "At least one ingredient with a name and quantity is required"
+
+    ingredients.forEach((ing, i) => {
+      if (ing.name.trim() && ing.unitId === null)
+        newErrors[`ingredient-${i}-unit`] = "Unit is required for " + ing.name.trim()
+    })
 
     const validSteps = steps.filter((s) => s.description.trim())
     if (validSteps.length === 0)
@@ -219,7 +240,7 @@ export const RecipeForm = () => {
       preparationTime: parseInt(preparationTime),
       cuisine: selectedCuisine,
       tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().toLowerCase() })),
-      author: author.trim() || null,
+      author: author.trim() || "Anonymous",
       ingredients: ingredients
         .filter((i) => i.name.trim() && i.quantity > 0)
         .map((i) => ({
@@ -267,6 +288,9 @@ export const RecipeForm = () => {
         {/* Basic Info */}
         <section>
           <SectionHeading>Basic Info</SectionHeading>
+          <p className="mb-4 text-xs text-muted-foreground">
+            <span className="text-destructive">*</span> Required field
+          </p>
           <div className="space-y-4">
             <div id="field-name">
               <FieldLabel required>Name</FieldLabel>
@@ -293,7 +317,7 @@ export const RecipeForm = () => {
               <Input
                 value={author}
                 onChange={(e) => setAuthor(e.target.value)}
-                placeholder="e.g. Grandma Rose"
+                placeholder="e.g. Nana"
               />
             </div>
           </div>
@@ -310,7 +334,6 @@ export const RecipeForm = () => {
                 min={1}
                 value={preparationTime}
                 onChange={(e) => setPreparationTime(e.target.value)}
-                placeholder="15"
                 aria-invalid={!!errors.preparationTime}
               />
               <FieldError message={errors.preparationTime} />
@@ -322,20 +345,20 @@ export const RecipeForm = () => {
                 min={0}
                 value={cookingTime}
                 onChange={(e) => setCookingTime(e.target.value)}
-                placeholder="30"
                 aria-invalid={!!errors.cookingTime}
               />
               <FieldError message={errors.cookingTime} />
             </div>
-            <div>
-              <FieldLabel>Servings</FieldLabel>
+            <div id="field-servings">
+              <FieldLabel required>Servings</FieldLabel>
               <Input
                 type="number"
                 min={1}
                 value={servings}
                 onChange={(e) => setServings(e.target.value)}
-                placeholder="4"
+                aria-invalid={!!errors.servings}
               />
+              <FieldError message={errors.servings} />
             </div>
             <div>
               <FieldLabel>Calories (kcal)</FieldLabel>
@@ -344,7 +367,6 @@ export const RecipeForm = () => {
                 min={0}
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
-                placeholder="450"
               />
             </div>
           </div>
@@ -363,8 +385,11 @@ export const RecipeForm = () => {
         </section>
 
         {/* Cuisine */}
-        <section>
-          <SectionHeading>Cuisine</SectionHeading>
+        <section id="field-cuisine">
+          <SectionHeading required>Cuisine</SectionHeading>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {"Can't find yours? Type it and press Enter to add a custom cuisine."}
+          </p>
           {selectedCuisine ? (
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
@@ -388,9 +413,18 @@ export const RecipeForm = () => {
                 value={cuisineQuery}
                 onChange={(e) => handleCuisineQuery(e.target.value)}
                 onBlur={() => setTimeout(() => setCuisineDropdownOpen(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && cuisineQuery.trim()) {
+                    e.preventDefault()
+                    setSelectedCuisine({ id: null, name: cuisineQuery.trim() })
+                    setCuisineQuery("")
+                    setCuisineDropdownOpen(false)
+                  }
+                }}
                 placeholder="Search cuisines…"
+                aria-invalid={!!errors.cuisine}
               />
-              {cuisineDropdownOpen && cuisineResults.length > 0 && (
+              {cuisineDropdownOpen && (cuisineResults.length > 0 || cuisineQuery.trim()) && (
                 <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
                   {cuisineResults.map((c) => (
                     <button
@@ -406,26 +440,50 @@ export const RecipeForm = () => {
                       {c.name}
                     </button>
                   ))}
+                  {cuisineQuery.trim() &&
+                    !cuisineResults.some(
+                      (c) => c.name.toLowerCase() === cuisineQuery.trim().toLowerCase(),
+                    ) && (
+                      <button
+                        type="button"
+                        onMouseDown={() => {
+                          setSelectedCuisine({ id: null, name: cuisineQuery.trim() })
+                          setCuisineQuery("")
+                          setCuisineDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2.5 text-left text-sm text-primary hover:bg-muted"
+                      >
+                        Create &ldquo;{cuisineQuery.trim()}&rdquo;
+                      </button>
+                    )}
                 </div>
               )}
             </div>
           )}
+          <FieldError message={errors.cuisine} />
         </section>
 
         {/* Tags */}
         <section>
           <SectionHeading>Tags</SectionHeading>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {"Can't find a match? Type it and press Enter to add a custom tag."}
+          </p>
           {selectedTags.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-2">
               {selectedTags.map((tag) => (
                 <span
-                  key={tag.id}
+                  key={tag.id ?? tag.name}
                   className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground"
                 >
                   {tag.name}
                   <button
                     type="button"
-                    onClick={() => setSelectedTags((prev) => prev.filter((t) => t.id !== tag.id))}
+                    onClick={() =>
+                      setSelectedTags((prev) =>
+                        prev.filter((t) => t.id !== tag.id || t.name !== tag.name),
+                      )
+                    }
                     className="flex items-center text-secondary-foreground/70 hover:text-secondary-foreground"
                     aria-label={`Remove tag ${tag.name}`}
                   >
@@ -440,9 +498,20 @@ export const RecipeForm = () => {
               value={tagQuery}
               onChange={(e) => handleTagQuery(e.target.value)}
               onBlur={() => setTimeout(() => setTagDropdownOpen(false), 150)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && tagQuery.trim()) {
+                  e.preventDefault()
+                  const trimmed = tagQuery.trim()
+                  if (!selectedTags.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) {
+                    setSelectedTags((prev) => [...prev, { id: null, name: trimmed }])
+                  }
+                  setTagQuery("")
+                  setTagDropdownOpen(false)
+                }
+              }}
               placeholder="Search tags…"
             />
-            {tagDropdownOpen && tagResults.length > 0 && (
+            {tagDropdownOpen && (tagResults.length > 0 || tagQuery.trim()) && (
               <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
                 {tagResults
                   .filter((t) => !selectedTags.some((s) => s.id === t.id))
@@ -460,6 +529,24 @@ export const RecipeForm = () => {
                       {t.name}
                     </button>
                   ))}
+                {tagQuery.trim() &&
+                  !tagResults.some((t) => t.name.toLowerCase() === tagQuery.trim().toLowerCase()) &&
+                  !selectedTags.some(
+                    (t) => t.name.toLowerCase() === tagQuery.trim().toLowerCase(),
+                  ) && (
+                    <button
+                      type="button"
+                      onMouseDown={() => {
+                        const trimmed = tagQuery.trim()
+                        setSelectedTags((prev) => [...prev, { id: null, name: trimmed }])
+                        setTagQuery("")
+                        setTagDropdownOpen(false)
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-primary hover:bg-muted"
+                    >
+                      Create &ldquo;{tagQuery.trim()}&rdquo;
+                    </button>
+                  )}
               </div>
             )}
           </div>
@@ -467,7 +554,7 @@ export const RecipeForm = () => {
 
         {/* Ingredients */}
         <section id="field-ingredients">
-          <SectionHeading>
+          <SectionHeading required>
             Ingredients
             {errors.ingredients && (
               <span className="ml-2 text-sm font-normal text-destructive">
@@ -543,7 +630,7 @@ export const RecipeForm = () => {
                     />
                   </div>
                   <div>
-                    <FieldLabel>Unit</FieldLabel>
+                    <FieldLabel required>Unit</FieldLabel>
                     <select
                       value={ingredient.unitId ?? ""}
                       onChange={(e) =>
@@ -560,6 +647,7 @@ export const RecipeForm = () => {
                         </option>
                       ))}
                     </select>
+                    <FieldError message={errors[`ingredient-${index}-unit`]} />
                   </div>
                 </div>
                 <div>
@@ -587,7 +675,7 @@ export const RecipeForm = () => {
 
         {/* Steps */}
         <section id="field-steps">
-          <SectionHeading>
+          <SectionHeading required>
             Steps
             {errors.steps && (
               <span className="ml-2 text-sm font-normal text-destructive">{errors.steps}</span>
