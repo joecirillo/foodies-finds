@@ -3,7 +3,7 @@
 import { addRecipeAction } from "@/app/actions/recipe"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { lowerFirst, toSentenceCase } from "@/lib/text"
+import { lowerFirst, toSentenceCase } from "@/lib/utils/text"
 import type { IngredientRow, StepRow, Unit } from "@/types/recipe"
 import { ArrowLeft02Icon, Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"

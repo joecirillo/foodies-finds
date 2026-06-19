@@ -10,8 +10,8 @@ import {
   UserIcon,
 } from "@hugeicons/core-free-icons"
 import { getRecipe } from "@/lib/api"
-import { formatMinutes, formatQuantity } from "@/lib/format"
-import { toTitleCase, toSentenceCase, lowerFirst } from "@/lib/text"
+import { formatMinutes, formatQuantity } from "@/lib/utils/format"
+import { toTitleCase, toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import { Button } from "@/components/ui/button"
 import type { Recipe } from "@/types/recipe"
 
