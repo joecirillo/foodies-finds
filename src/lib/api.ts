@@ -1,11 +1,20 @@
-import type { ApiResponse, Recipe, AddRecipePayload, RecipeSearchResult } from "@/types/recipe"
+import type {
+  ApiResponse,
+  Recipe,
+  AddRecipePayload,
+  RecipeSearchResult,
+  Cuisine,
+  Ingredient,
+  Tag,
+  Unit,
+} from "@/types/recipe"
 
-async function apiFetch<T>(path: string): Promise<T> {
+async function apiFetch<T>(path: string, revalidate: number | false = 60): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
     headers: {
       "x-api-key": process.env.API_KEY ?? "",
     },
-    next: { revalidate: 60 },
+    next: { revalidate },
   })
 
   if (!res.ok) {
@@ -78,6 +87,17 @@ export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]>
   }
   return res.json()
 }
+
+export const searchCuisines = (query: string) =>
+  apiFetch<Cuisine[]>(`/cuisine/search?query=${encodeURIComponent(query)}`)
+
+export const searchIngredients = (query: string) =>
+  apiFetch<Ingredient[]>(`/ingredient/search?query=${encodeURIComponent(query)}`)
+
+export const searchTags = (query: string) =>
+  apiFetch<Tag[]>(`/tag/search?query=${encodeURIComponent(query)}`)
+
+export const listUnits = () => apiFetch<Unit[]>("/unit/list", 3600)
 
 export const filterRecipes = async (params: {
   name?: string

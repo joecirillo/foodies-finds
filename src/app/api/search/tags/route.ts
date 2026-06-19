@@ -1,17 +1,11 @@
-import type { ApiResponse, Tag } from "@/types/recipe"
+import { searchTags } from "@/lib/api"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const query = searchParams.get("query") ?? ""
-
-  const res = await fetch(`${process.env.API_URL}/tag/search?query=${encodeURIComponent(query)}`, {
-    headers: { "x-api-key": process.env.API_KEY ?? "" },
-  })
-
-  if (!res.ok) {
-    return Response.json([], { status: res.status })
+  try {
+    return Response.json(await searchTags(query))
+  } catch {
+    return Response.json([], { status: 500 })
   }
-
-  const body: ApiResponse<Tag[]> = await res.json()
-  return Response.json(body.data)
 }
