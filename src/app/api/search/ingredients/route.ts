@@ -1,18 +1,11 @@
-import type { ApiResponse, Ingredient } from "@/types/recipe"
+import { searchIngredients } from "@/lib/api"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const query = searchParams.get("query") ?? ""
-
-  const res = await fetch(
-    `${process.env.API_URL}/ingredient/search?query=${encodeURIComponent(query)}`,
-    { headers: { "x-api-key": process.env.API_KEY ?? "" } },
-  )
-
-  if (!res.ok) {
-    return Response.json([], { status: res.status })
+  try {
+    return Response.json(await searchIngredients(query))
+  } catch {
+    return Response.json([], { status: 500 })
   }
-
-  const body: ApiResponse<Ingredient[]> = await res.json()
-  return Response.json(body.data)
 }

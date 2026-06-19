@@ -1,15 +1,9 @@
-import type { ApiResponse, Unit } from "@/types/recipe"
+import { listUnits } from "@/lib/api"
 
 export async function GET() {
-  const res = await fetch(`${process.env.API_URL}/unit/list`, {
-    headers: { "x-api-key": process.env.API_KEY ?? "" },
-    next: { revalidate: 3600 },
-  })
-
-  if (!res.ok) {
-    return Response.json([], { status: res.status })
+  try {
+    return Response.json(await listUnits())
+  } catch {
+    return Response.json([], { status: 500 })
   }
-
-  const body: ApiResponse<Unit[]> = await res.json()
-  return Response.json(body.data)
 }
