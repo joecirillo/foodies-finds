@@ -8,7 +8,7 @@ import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon } from "@hugeicons/core-fre
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { updateRecipeAction } from "@/app/actions/recipe"
-import { toSentenceCase, lowerFirst } from "@/lib/text"
+import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }

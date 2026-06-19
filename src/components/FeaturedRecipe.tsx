@@ -6,8 +6,8 @@ import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { TimeIcon, FireIcon, UserIcon, Loading03Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
-import { formatMinutes } from "@/lib/format"
-import { toTitleCase } from "@/lib/text"
+import { formatMinutes } from "@/lib/utils/format"
+import { toTitleCase } from "@/lib/utils/text"
 import type { Recipe } from "@/types/recipe"
 
 export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => {
