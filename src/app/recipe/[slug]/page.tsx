@@ -115,41 +115,31 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
         )}
 
         <div className="mt-4 flex flex-wrap gap-4">
-          {totalTime > 0 && (
-            <MetaItem
-              icon={<HugeiconsIcon icon={TimeIcon} className="size-4" />}
-              label="Total time"
-              value={formatMinutes(totalTime)}
-            />
-          )}
-          {recipe.preparationTime > 0 && (
-            <MetaItem
-              icon={<HugeiconsIcon icon={TimeIcon} className="size-4 text-muted-foreground" />}
-              label="Prep"
-              value={formatMinutes(recipe.preparationTime)}
-            />
-          )}
-          {recipe.cookingTime > 0 && (
-            <MetaItem
-              icon={<HugeiconsIcon icon={FireIcon} className="size-4" />}
-              label="Cook"
-              value={formatMinutes(recipe.cookingTime)}
-            />
-          )}
-          {recipe.servings && (
-            <MetaItem
-              icon={<HugeiconsIcon icon={UserIcon} className="size-4" />}
-              label="Serves"
-              value={String(recipe.servings)}
-            />
-          )}
-          {recipe.calories && (
-            <MetaItem
-              icon={<HugeiconsIcon icon={FireIcon} className="size-4 text-orange-500" />}
-              label="Calories"
-              value={`${recipe.calories} kcal`}
-            />
-          )}
+          <MetaItem
+            icon={<HugeiconsIcon icon={TimeIcon} className="size-4" />}
+            label="Total time"
+            value={formatMinutes(totalTime)}
+          />
+          <MetaItem
+            icon={<HugeiconsIcon icon={TimeIcon} className="size-4 text-muted-foreground" />}
+            label="Prep"
+            value={formatMinutes(recipe.preparationTime)}
+          />
+          <MetaItem
+            icon={<HugeiconsIcon icon={FireIcon} className="size-4" />}
+            label="Cook"
+            value={formatMinutes(recipe.cookingTime)}
+          />
+          <MetaItem
+            icon={<HugeiconsIcon icon={UserIcon} className="size-4" />}
+            label="Serves"
+            value={String(recipe.servings)}
+          />
+          <MetaItem
+            icon={<HugeiconsIcon icon={FireIcon} className="size-4 text-orange-500" />}
+            label="Calories"
+            value={recipe.calories ? `${recipe.calories}` : "N/A"}
+          />
         </div>
 
         <section className="mt-7">
