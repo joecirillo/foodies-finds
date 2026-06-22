@@ -7,7 +7,7 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { updateRecipeAction } from "@/app/actions/recipe"
+import { updateRecipeAction, uploadRecipeImageAction, deleteRecipeImageAction } from "@/app/actions/recipe"
 import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
@@ -38,7 +38,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const [name, setName] = useState(recipe.name)
   const [description, setDescription] = useState(recipe.description ?? "")
   const [author, setAuthor] = useState(recipe.author ?? "")
-  const [imageUrl, setImageUrl] = useState(recipe.imageUrl ?? "")
+  const [imageFile, setImageFile] = useState<File | undefined>(undefined)
+  const existingImageUrl = recipe.imageUrl ?? null
   const [preparationTime, setPreparationTime] = useState(
     recipe.preparationTime > 0 ? String(recipe.preparationTime) : "",
   )
@@ -240,6 +241,20 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setIsSubmitting(true)
     setSubmitError(null)
 
+    let uploadedImageUrl: string | null = null
+
+    if (imageFile) {
+      const fd = new FormData()
+      fd.append("file", imageFile)
+      const upload = await uploadRecipeImageAction(fd)
+      if (!upload.ok) {
+        setErrors((prev) => ({ ...prev, image: upload.error }))
+        setIsSubmitting(false)
+        return
+      }
+      uploadedImageUrl = upload.imageUrl
+    }
+
     const result = await updateRecipeAction(recipe.id as number, {
       name: name.trim(),
       description: description.trim() || null,
@@ -266,13 +281,16 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           description: toSentenceCase(s.description.trim()),
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
-      imageUrl: imageUrl.trim() || null,
+      imageUrl: uploadedImageUrl ?? existingImageUrl,
     })
 
     if (result.ok) {
       router.push(`/recipe/${recipe.id}`)
       router.refresh()
     } else {
+      if (uploadedImageUrl) {
+        deleteRecipeImageAction(uploadedImageUrl)
+      }
       setSubmitError(result.error)
       setIsSubmitting(false)
     }
@@ -379,15 +397,49 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         </section>
 
         {/* Image */}
-        <section>
+        <section id="field-image">
           <SectionHeading>Image</SectionHeading>
-          <FieldLabel>Image URL</FieldLabel>
-          <Input
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://…"
-            type="url"
-          />
+          <FieldLabel>Photo</FieldLabel>
+          {existingImageUrl && !imageFile && (
+            <p className="mb-2 text-xs text-muted-foreground truncate">
+              Current: {existingImageUrl}
+            </p>
+          )}
+          <div className="flex items-center gap-3">
+            <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="sr-only"
+                onChange={(e) => {
+                  setImageFile(e.target.files?.[0])
+                  setErrors((prev) => {
+                    const next = { ...prev }
+                    delete next.image
+                    return next
+                  })
+                }}
+              />
+              {imageFile ? (
+                <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
+              ) : existingImageUrl ? (
+                "Tap to replace photo…"
+              ) : (
+                "Tap to choose a photo…"
+              )}
+            </label>
+            {imageFile && (
+              <button
+                type="button"
+                onClick={() => setImageFile(undefined)}
+                className="flex items-center text-muted-foreground hover:text-destructive transition-colors"
+                aria-label="Remove image"
+              >
+                <HugeiconsIcon icon={Delete02Icon} className="size-4" />
+              </button>
+            )}
+          </div>
+          <FieldError message={errors.image} />
         </section>
 
         {/* Cuisine */}
