@@ -23,7 +23,7 @@ export const uploadRecipeImageAction = async (formData: FormData): Promise<Uploa
   upstream.append("file", file)
 
   try {
-    const res = await fetch(`${process.env.API_URL}/recipe/image`, {
+    const res = await fetch(`${process.env.API_URL}/recipes/images`, {
       method: "POST",
       headers: { "x-api-key": process.env.API_KEY ?? "" },
       body: upstream,
@@ -42,7 +42,7 @@ export const uploadRecipeImageAction = async (formData: FormData): Promise<Uploa
 }
 
 export const deleteRecipeImageAction = async (imageUrl: string): Promise<void> => {
-  await fetch(`${process.env.API_URL}/recipe/image`, {
+  await fetch(`${process.env.API_URL}/recipes/images`, {
     method: "DELETE",
     headers: {
       "x-api-key": process.env.API_KEY ?? "",

@@ -49,9 +49,9 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
   return body.data
 }
 
-export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipe/get/${id}`)
+export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipes/${id}`)
 
-export const listRecipes = () => apiFetch<RecipeSearchResult[]>("/recipe/list")
+export const listRecipes = () => apiFetch<RecipeSearchResult[]>("/recipes")
 
 async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
@@ -73,10 +73,10 @@ async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   return body.data
 }
 
-export const addRecipe = (payload: AddRecipePayload) => apiPost<Recipe>("/recipe/save", payload)
+export const addRecipe = (payload: AddRecipePayload) => apiPost<Recipe>("/recipes", payload)
 
 export const updateRecipe = (id: number | string, payload: AddRecipePayload) =>
-  apiPatch<Recipe>(`/recipe/update/${id}`, payload)
+  apiPatch<Recipe>(`/recipes/${id}`, payload)
 
 export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]> => {
   const res = await fetch(`/api/search/recipes?name=${encodeURIComponent(name)}`)
@@ -89,15 +89,15 @@ export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]>
 }
 
 export const searchCuisines = (query: string) =>
-  apiFetch<Cuisine[]>(`/cuisine/search?query=${encodeURIComponent(query)}`)
+  apiFetch<Cuisine[]>(`/cuisines?query=${encodeURIComponent(query)}`)
 
 export const searchIngredients = (query: string) =>
-  apiFetch<Ingredient[]>(`/ingredient/search?query=${encodeURIComponent(query)}`)
+  apiFetch<Ingredient[]>(`/ingredients?query=${encodeURIComponent(query)}`)
 
 export const searchTags = (query: string) =>
-  apiFetch<Tag[]>(`/tag/search?query=${encodeURIComponent(query)}`)
+  apiFetch<Tag[]>(`/tags?query=${encodeURIComponent(query)}`)
 
-export const listUnits = () => apiFetch<Unit[]>("/unit/list", 3600)
+export const listUnits = () => apiFetch<Unit[]>("/units", 3600)
 
 export const filterRecipes = async (params: {
   name?: string
@@ -111,7 +111,7 @@ export const filterRecipes = async (params: {
   if (params.tagId) qs.set("tagId", String(params.tagId))
   if (params.ingredientId) qs.set("ingredientId", String(params.ingredientId))
 
-  const res = await fetch(`${process.env.API_URL}/recipe/search?${qs}`, {
+  const res = await fetch(`${process.env.API_URL}/recipes?${qs}`, {
     headers: { "x-api-key": process.env.API_KEY ?? "" },
     cache: "no-store",
   })
