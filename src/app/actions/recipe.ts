@@ -15,7 +15,7 @@ export const uploadRecipeImageAction = async (formData: FormData): Promise<Uploa
     return { ok: false, error: "No file provided" }
   }
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-    return { ok: false, error: "File must be jpeg, png, webp, or gif" }
+    return { ok: false, error: "File must be jpeg, png, heic, webp, or gif" }
   }
   console.log("Uploading image file:", file.name, "type:", file.type, "size:", file.size)
 
