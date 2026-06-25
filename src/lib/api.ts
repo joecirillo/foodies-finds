@@ -99,6 +99,45 @@ export const searchTags = (query: string) =>
 
 export const listUnits = () => apiFetch<Unit[]>("/units", 3600)
 
+export const uploadRecipeImage = async (file: Blob): Promise<string> => {
+  const form = new FormData()
+  form.append("file", file)
+
+  const res = await fetch(`${process.env.API_URL}/recipes/images`, {
+    method: "POST",
+    headers: { "x-api-key": process.env.API_KEY ?? "" },
+    body: form,
+  })
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => null)
+    const message = body?.message ?? `API ${res.status}`
+    const err = new Error(message)
+    ;(err as NodeJS.ErrnoException).code = String(res.status)
+    throw err
+  }
+
+  const body = await res.json()
+  return body.data ?? body.imageUrl
+}
+
+export const deleteRecipeImage = async (imageUrl: string): Promise<void> => {
+  const res = await fetch(`${process.env.API_URL}/recipes/images`, {
+    method: "DELETE",
+    headers: {
+      "x-api-key": process.env.API_KEY ?? "",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ imageUrl }),
+  })
+
+  if (!res.ok) {
+    const err = new Error(`API ${res.status}`)
+    ;(err as NodeJS.ErrnoException).code = String(res.status)
+    throw err
+  }
+}
+
 export const filterRecipes = async (params: {
   name?: string
   cuisineId?: number

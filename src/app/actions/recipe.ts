@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { addRecipe, updateRecipe } from "@/lib/api"
+import { addRecipe, updateRecipe, uploadRecipeImage, deleteRecipeImage } from "@/lib/api"
 import type { AddRecipePayload } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
@@ -19,37 +19,18 @@ export const uploadRecipeImageAction = async (formData: FormData): Promise<Uploa
   }
   console.log("Uploading image file:", file.name, "type:", file.type, "size:", file.size)
 
-  const upstream = new FormData()
-  upstream.append("file", file)
-
   try {
-    const res = await fetch(`${process.env.API_URL}/recipes/images`, {
-      method: "POST",
-      headers: { "x-api-key": process.env.API_KEY ?? "" },
-      body: upstream,
-    })
-    if (!res.ok) {
-      const body = await res.json().catch(() => null)
-      console.error("Failed to upload image:", body?.message ?? "Unknown error")
-      return { ok: false, error: body?.message ?? "Failed to upload image. Please try again." }
-    }
-    const body = await res.json()
-    return { ok: true, imageUrl: body.data ?? body.imageUrl }
-  } catch {
-    console.error("Failed to upload image due to network error")
-    return { ok: false, error: "Failed to upload image. Please try again." }
+    const imageUrl = await uploadRecipeImage(file)
+    return { ok: true, imageUrl }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to upload image. Please try again."
+    console.error("Failed to upload image:", message)
+    return { ok: false, error: message }
   }
 }
 
 export const deleteRecipeImageAction = async (imageUrl: string): Promise<void> => {
-  await fetch(`${process.env.API_URL}/recipes/images`, {
-    method: "DELETE",
-    headers: {
-      "x-api-key": process.env.API_KEY ?? "",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ imageUrl }),
-  }).catch(() => {})
+  await deleteRecipeImage(imageUrl).catch(() => {})
 }
 
 export const addRecipeAction = async (payload: AddRecipePayload): Promise<ActionResult> => {
