@@ -70,24 +70,18 @@ export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => 
         )}
 
         <div className="mt-3 flex flex-wrap gap-3 text-sm">
-          {totalTime > 0 && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <HugeiconsIcon icon={TimeIcon} className="size-4 text-primary" />
-              {formatMinutes(totalTime)}
-            </span>
-          )}
-          {currentRecipe.servings && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <HugeiconsIcon icon={UserIcon} className="size-4 text-primary" />
-              {currentRecipe.servings} servings
-            </span>
-          )}
-          {currentRecipe.calories && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <HugeiconsIcon icon={FireIcon} className="size-4 text-orange-500" />
-              {currentRecipe.calories} kcal
-            </span>
-          )}
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <HugeiconsIcon icon={TimeIcon} className="size-4 text-primary" />
+            {formatMinutes(totalTime)}
+          </span>
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <HugeiconsIcon icon={UserIcon} className="size-4 text-primary" />
+            {currentRecipe.servings} servings
+          </span>
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <HugeiconsIcon icon={FireIcon} className="size-4 text-orange-500" />
+            {currentRecipe.calories ? `${currentRecipe.calories} kcal` : "N/A"}
+          </span>
         </div>
 
         <div className="mt-4 flex gap-2">
