@@ -36,7 +36,7 @@ export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => 
           src={currentRecipe.imageUrl?.trim() ? currentRecipe.imageUrl : "/no-image.jpeg"}
           alt={currentRecipe.name}
           fill
-          className="object-cover"
+          className="object-contain"
         />
       </div>
 

@@ -14,7 +14,7 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
 
   const hasFilters = cuisineId || tagId || ingredientId
 
-  let recipes: { id: number; name: string }[] = []
+  let recipes: { id: number; name: string; imageUrl?: string }[] = []
   try {
     recipes = hasFilters
       ? await filterRecipes({ cuisineId, tagId, ingredientId })
@@ -46,7 +46,12 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
               className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-foreground/10 transition-opacity active:opacity-80"
             >
               <div className="relative aspect-square w-full bg-muted">
-                <Image src="/no-image.jpeg" alt={recipe.name} fill className="object-cover" />
+                <Image
+                  src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/no-image.jpeg"}
+                  alt={recipe.name}
+                  fill
+                  className="object-contain"
+                />
               </div>
               <div className="p-3">
                 <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
