@@ -1,6 +1,7 @@
 export type RecipeSearchResult = {
   id: number
   name: string
+  imageUrl?: string
 }
 
 export type ApiResponse<T> = {
