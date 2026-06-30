@@ -5,7 +5,8 @@ export const formatMinutes = (mins: number): string => {
   return m > 0 ? `${h}h ${m}m` : `${h}h`
 }
 
-export const formatQuantity = (qty: number, unit: string | null): string => {
+export const formatQuantity = (qty: number | null, unit: string | null): string => {
+  if (qty === null) return ""
   const qtyStr = qty % 1 === 0 ? String(qty) : qty.toFixed(1)
   return unit ? `${qtyStr} ${unit}` : qtyStr
 }

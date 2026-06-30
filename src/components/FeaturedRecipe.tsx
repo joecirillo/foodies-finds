@@ -7,7 +7,6 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { TimeIcon, FireIcon, UserIcon, Loading03Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { formatMinutes } from "@/lib/utils/format"
-import { toTitleCase } from "@/lib/utils/text"
 import type { Recipe } from "@/types/recipe"
 
 export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => {
@@ -53,7 +52,7 @@ export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => 
                 key={tag.id}
                 className="rounded-full bg-secondary px-3 py-0.5 text-xs font-medium text-secondary-foreground"
               >
-                {toTitleCase(tag.name)}
+                {tag.name}
               </span>
             ))}
           </div>

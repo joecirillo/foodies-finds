@@ -24,7 +24,7 @@ export type Tag = {
 export type Ingredient = {
   id: number
   name: string
-  quantity: number
+  quantity: number | null
   notes: string | null
   unitId: number | null
   unitName: string | null
@@ -48,7 +48,7 @@ export type AddIngredientInput = {
   id: null
   name: string
   unitId: number | null
-  quantity: number
+  quantity: number | null
   notes: string | null
 }
 
@@ -62,7 +62,7 @@ export type IngredientRow = {
   key: number
   name: string
   unitId: number | null
-  quantity: number
+  quantity: number | null
   notes: string
   searchResults: { id: number; name: string }[]
   dropdownOpen: boolean

@@ -81,7 +81,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
                 key={tag.id}
                 className="rounded-full bg-secondary px-3 py-0.5 text-xs font-medium text-secondary-foreground"
               >
-                {toTitleCase(tag.name)}
+                {tag.name}
               </span>
             ))}
           </div>
