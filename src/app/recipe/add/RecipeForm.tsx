@@ -1,6 +1,10 @@
 "use client"
 
-import { addRecipeAction, deleteRecipeImageAction, uploadRecipeImageAction } from "@/app/actions/recipe"
+import {
+  addRecipeAction,
+  deleteRecipeImageAction,
+  uploadRecipeImageAction,
+} from "@/app/actions/recipe"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { lowerFirst, toSentenceCase } from "@/lib/utils/text"
@@ -199,7 +203,9 @@ export const RecipeForm = () => {
 
     if (!selectedCuisine) newErrors.cuisine = "Cuisine is required"
 
-    const validIngredients = ingredients.filter((i) => i.name.trim() && i.quantity > 0)
+    const validIngredients = ingredients.filter(
+      (i) => i.name.trim() && i.quantity !== null && i.quantity > 0,
+    )
     if (validIngredients.length === 0)
       newErrors.ingredients = "At least one ingredient with a name and quantity is required"
 
@@ -253,10 +259,10 @@ export const RecipeForm = () => {
       cookingTime: cookingTime ? parseInt(cookingTime) : 0,
       preparationTime: parseInt(preparationTime),
       cuisine: selectedCuisine,
-      tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().toLowerCase() })),
+      tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().replace(/\s+/g, "-") })),
       author: author.trim() || "Anonymous",
       ingredients: ingredients
-        .filter((i) => i.name.trim() && i.quantity > 0)
+        .filter((i) => i.name.trim() && i.quantity !== null && i.quantity > 0)
         .map((i) => ({
           id: null,
           name: i.name.trim().toLowerCase(),
@@ -545,9 +551,9 @@ export const RecipeForm = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter" && tagQuery.trim()) {
                   e.preventDefault()
-                  const trimmed = tagQuery.trim()
-                  if (!selectedTags.some((t) => t.name.toLowerCase() === trimmed.toLowerCase())) {
-                    setSelectedTags((prev) => [...prev, { id: null, name: trimmed }])
+                  const normalized = tagQuery.trim().replace(/\s+/g, "-")
+                  if (!selectedTags.some((t) => t.name.toLowerCase() === normalized.toLowerCase())) {
+                    setSelectedTags((prev) => [...prev, { id: null, name: normalized }])
                   }
                   setTagQuery("")
                   setTagDropdownOpen(false)
@@ -581,8 +587,8 @@ export const RecipeForm = () => {
                     <button
                       type="button"
                       onMouseDown={() => {
-                        const trimmed = tagQuery.trim()
-                        setSelectedTags((prev) => [...prev, { id: null, name: trimmed }])
+                        const normalized = tagQuery.trim().replace(/\s+/g, "-")
+                        setSelectedTags((prev) => [...prev, { id: null, name: normalized }])
                         setTagQuery("")
                         setTagDropdownOpen(false)
                       }}
@@ -664,10 +670,10 @@ export const RecipeForm = () => {
                       type="number"
                       min={0}
                       step="any"
-                      value={ingredient.quantity}
+                      value={ingredient.quantity ?? ""}
                       onChange={(e) =>
                         updateIngredient(index, {
-                          quantity: parseFloat(e.target.value) || 0,
+                          quantity: parseFloat(e.target.value) || null,
                         })
                       }
                       placeholder="1"

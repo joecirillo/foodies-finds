@@ -7,7 +7,11 @@ import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { updateRecipeAction, uploadRecipeImageAction, deleteRecipeImageAction } from "@/app/actions/recipe"
+import {
+  updateRecipeAction,
+  uploadRecipeImageAction,
+  deleteRecipeImageAction,
+} from "@/app/actions/recipe"
 import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
@@ -177,7 +181,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         key: nextKey(),
         name: "",
         unitId: null,
-        quantity: 1,
+        quantity: null,
         notes: "",
         searchResults: [],
         dropdownOpen: false,
@@ -214,7 +218,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     if (cookingTime !== "" && (isNaN(cookTime) || cookTime < 0))
       newErrors.cookingTime = "Cooking time must be 0 or more"
 
-    const validIngredients = ingredients.filter((i) => i.name.trim() && i.quantity > 0)
+    const validIngredients = ingredients.filter(
+      (i) => i.name.trim() && i.quantity !== null && i.quantity > 0,
+    )
     if (validIngredients.length === 0)
       newErrors.ingredients = "At least one ingredient with a name and quantity is required"
 
@@ -263,10 +269,10 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       cookingTime: cookingTime ? parseInt(cookingTime) : 0,
       preparationTime: parseInt(preparationTime),
       cuisine: selectedCuisine,
-      tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().toLowerCase() })),
+      tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().replace(/\s+/g, "-") })),
       author: author.trim() || null,
       ingredients: ingredients
-        .filter((i) => i.name.trim() && i.quantity > 0)
+        .filter((i) => i.name.trim() && i.quantity !== null && i.quantity > 0)
         .map((i) => ({
           id: null,
           name: i.name.trim().toLowerCase(),
@@ -613,7 +619,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                       type="number"
                       min={0}
                       step="any"
-                      value={ingredient.quantity}
+                      value={ingredient.quantity ?? ""}
                       onChange={(e) =>
                         updateIngredient(index, {
                           quantity: parseFloat(e.target.value) || 0,

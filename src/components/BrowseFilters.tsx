@@ -116,7 +116,7 @@ const FilterPill = ({
             <CommandGroup>
               {results.map((item) => (
                 <CommandItem
-                  key={item.id}
+                  key={`${filterKey}-${item.id}`}
                   value={String(item.id)}
                   data-checked={selectedId === item.id}
                   onSelect={() => {
