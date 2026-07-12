@@ -13,7 +13,7 @@ import { ArrowLeft02Icon, Delete02Icon, DragDropVerticalIcon, PlusSignIcon } fro
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
 type SearchResult = { id: number; name: string }
 type SearchResultOption = { id: number | null; name: string }
@@ -182,17 +182,14 @@ export const RecipeForm = () => {
     setSteps((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const reorderStep = (fromIndex: number, toIndex: number) => {
+  const reorderStep = useCallback((fromIndex: number, toIndex: number) => {
     setSteps((prev) => {
       const next = [...prev]
       const [moved] = next.splice(fromIndex, 1)
       next.splice(toIndex, 0, moved)
       return next
     })
-  }
-
-  const reorderStepRef = useRef(reorderStep)
-  reorderStepRef.current = reorderStep
+  }, [])
 
   useEffect(() => {
     const container = stepsListRef.current
@@ -224,7 +221,7 @@ export const RecipeForm = () => {
 
     const onTouchEnd = () => {
       if (fromIndex !== null && toIndex !== null && fromIndex !== toIndex) {
-        reorderStepRef.current(fromIndex, toIndex)
+        reorderStep(fromIndex, toIndex)
       }
       fromIndex = null
       toIndex = null
@@ -239,7 +236,7 @@ export const RecipeForm = () => {
       container.removeEventListener("touchmove", onTouchMove)
       container.removeEventListener("touchend", onTouchEnd)
     }
-  }, [])
+  }, [reorderStep])
 
   const updateStep = (index: number, updates: Partial<StepRow>) => {
     setSteps((prev) => prev.map((row, i) => (i === index ? { ...row, ...updates } : row)))

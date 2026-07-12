@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -203,17 +203,14 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setSteps((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const reorderStep = (fromIndex: number, toIndex: number) => {
+  const reorderStep = useCallback((fromIndex: number, toIndex: number) => {
     setSteps((prev) => {
       const next = [...prev]
       const [moved] = next.splice(fromIndex, 1)
       next.splice(toIndex, 0, moved)
       return next
     })
-  }
-
-  const reorderStepRef = useRef(reorderStep)
-  reorderStepRef.current = reorderStep
+  }, [])
 
   useEffect(() => {
     const container = stepsListRef.current
@@ -245,7 +242,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
 
     const onTouchEnd = () => {
       if (fromIndex !== null && toIndex !== null && fromIndex !== toIndex) {
-        reorderStepRef.current(fromIndex, toIndex)
+        reorderStep(fromIndex, toIndex)
       }
       fromIndex = null
       toIndex = null
@@ -260,7 +257,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       container.removeEventListener("touchmove", onTouchMove)
       container.removeEventListener("touchend", onTouchEnd)
     }
-  }, [])
+  }, [reorderStep])
 
   const updateStep = (index: number, updates: Partial<StepRow>) => {
     setSteps((prev) => prev.map((row, i) => (i === index ? { ...row, ...updates } : row)))
