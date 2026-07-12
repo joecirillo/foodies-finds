@@ -150,7 +150,9 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
             </span>
           </h2>
           <ul className="space-y-2">
-            {recipe.ingredients.map((ingredient, index) => (
+            {[...recipe.ingredients]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((ingredient, index) => (
               <li
                 key={`${ingredient.id}-${index}`}
                 className="flex items-start gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"

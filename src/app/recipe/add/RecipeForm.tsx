@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { lowerFirst, toSentenceCase } from "@/lib/utils/text"
 import type { IngredientRow, StepRow, Unit } from "@/types/recipe"
-import { ArrowLeft02Icon, Delete02Icon, PlusSignIcon } from "@hugeicons/core-free-icons"
+import { ArrowLeft02Icon, Delete02Icon, DragDropVerticalIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -48,6 +48,7 @@ export const RecipeForm = () => {
   const router = useRouter()
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
+  const dragIndex = useRef<number | null>(null)
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -178,6 +179,15 @@ export const RecipeForm = () => {
 
   const removeStep = (index: number) => {
     setSteps((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const reorderStep = (fromIndex: number, toIndex: number) => {
+    setSteps((prev) => {
+      const next = [...prev]
+      const [moved] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, moved)
+      return next
+    })
   }
 
   const updateStep = (index: number, updates: Partial<StepRow>) => {
@@ -733,12 +743,31 @@ export const RecipeForm = () => {
           </SectionHeading>
           <div className="space-y-3">
             {steps.map((step, index) => (
-              <div key={step.key} className="flex gap-3">
+              <div
+                key={step.key}
+                className="flex gap-3"
+                draggable
+                onDragStart={() => { dragIndex.current = index }}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIndex.current !== null && dragIndex.current !== index) {
+                    reorderStep(dragIndex.current, index)
+                  }
+                  dragIndex.current = null
+                }}
+              >
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground mt-2.5">
                   {index + 1}
                 </span>
                 <div className="flex-1 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      className="mt-1 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                      aria-label="Drag to reorder step"
+                    >
+                      <HugeiconsIcon icon={DragDropVerticalIcon} className="size-4" />
+                    </button>
                     <textarea
                       value={step.description}
                       onChange={(e) => updateStep(index, { description: e.target.value })}
