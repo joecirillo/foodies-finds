@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { RecipeForm } from "./RecipeForm"
 
@@ -153,6 +153,75 @@ describe("RecipeForm", () => {
       expect(screen.queryByPlaceholderText("Search cuisines…")).not.toBeInTheDocument()
     })
 
+  })
+
+  describe("step drag reordering", () => {
+    it("reorders steps when dragged", async () => {
+      const user = userEvent.setup()
+      render(<RecipeForm />)
+
+      await user.type(screen.getByPlaceholderText("Describe this step…"), "Step one")
+      await user.click(screen.getByText("Add Step"))
+      await user.type(screen.getAllByPlaceholderText("Describe this step…")[1], "Step two")
+
+      const stepRows = screen
+        .getAllByPlaceholderText("Describe this step…")
+        .map((el) => el.closest("[draggable]")) as HTMLElement[]
+
+      fireEvent.dragStart(stepRows[0])
+      fireEvent.dragOver(stepRows[1])
+      fireEvent.drop(stepRows[1])
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Step two")
+      expect(textareas[1].value).toBe("Step one")
+    })
+
+    it("reorders steps via touch drag on mobile", async () => {
+      const user = userEvent.setup()
+      render(<RecipeForm />)
+
+      await user.type(screen.getByPlaceholderText("Describe this step…"), "Step one")
+      await user.click(screen.getByText("Add Step"))
+      await user.type(screen.getAllByPlaceholderText("Describe this step…")[1], "Step two")
+
+      const stepRows = document.querySelectorAll("[data-step-index]")
+      Object.defineProperty(document, "elementFromPoint", {
+        value: vi.fn().mockReturnValue(stepRows[1]),
+        configurable: true,
+        writable: true,
+      })
+
+      const handle = screen.getAllByLabelText("Drag to reorder step")[0]
+      fireEvent(handle, new TouchEvent("touchstart", { bubbles: true }))
+      fireEvent(handle, new TouchEvent("touchmove", { bubbles: true, touches: [{ clientX: 0, clientY: 100 } as Touch] }))
+      fireEvent(handle, new TouchEvent("touchend", { bubbles: true }))
+
+      Object.defineProperty(document, "elementFromPoint", { value: undefined, configurable: true })
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Step two")
+      expect(textareas[1].value).toBe("Step one")
+    })
+
+    it("does not change order when dropped on the same step", async () => {
+      const user = userEvent.setup()
+      render(<RecipeForm />)
+
+      await user.type(screen.getByPlaceholderText("Describe this step…"), "Step one")
+      await user.click(screen.getByText("Add Step"))
+
+      const stepRows = screen
+        .getAllByPlaceholderText("Describe this step…")
+        .map((el) => el.closest("[draggable]")) as HTMLElement[]
+
+      fireEvent.dragStart(stepRows[0])
+      fireEvent.dragOver(stepRows[0])
+      fireEvent.drop(stepRows[0])
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Step one")
+    })
   })
 
   describe("custom tags", () => {

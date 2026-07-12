@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { EditRecipeForm } from "./EditRecipeForm"
 import type { Recipe } from "@/types/recipe"
@@ -393,6 +393,83 @@ describe("EditRecipeForm", () => {
     it("does not show remove button when only one step exists", () => {
       render(<EditRecipeForm recipe={baseRecipe} />)
       expect(screen.queryByLabelText("Remove step")).not.toBeInTheDocument()
+    })
+  })
+
+  describe("step drag reordering", () => {
+    it("reorders steps when dragged from first to second position", () => {
+      const recipe: Recipe = {
+        ...baseRecipe,
+        steps: [
+          { stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null },
+          { stepId: 2, stepNumber: 2, description: "Add the sauce", tip: null },
+        ],
+      }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      const stepRows = screen
+        .getAllByPlaceholderText("Describe this step…")
+        .map((el) => el.closest("[draggable]")) as HTMLElement[]
+
+      fireEvent.dragStart(stepRows[0])
+      fireEvent.dragOver(stepRows[1])
+      fireEvent.drop(stepRows[1])
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Add the sauce")
+      expect(textareas[1].value).toBe("Boil the pasta")
+    })
+
+    it("reorders steps via touch drag on mobile", () => {
+      const recipe: Recipe = {
+        ...baseRecipe,
+        steps: [
+          { stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null },
+          { stepId: 2, stepNumber: 2, description: "Add the sauce", tip: null },
+        ],
+      }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      const stepRows = document.querySelectorAll("[data-step-index]")
+      Object.defineProperty(document, "elementFromPoint", {
+        value: vi.fn().mockReturnValue(stepRows[1]),
+        configurable: true,
+        writable: true,
+      })
+
+      const handle = screen.getAllByLabelText("Drag to reorder step")[0]
+      fireEvent(handle, new TouchEvent("touchstart", { bubbles: true }))
+      fireEvent(handle, new TouchEvent("touchmove", { bubbles: true, touches: [{ clientX: 0, clientY: 100 } as Touch] }))
+      fireEvent(handle, new TouchEvent("touchend", { bubbles: true }))
+
+      Object.defineProperty(document, "elementFromPoint", { value: undefined, configurable: true })
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Add the sauce")
+      expect(textareas[1].value).toBe("Boil the pasta")
+    })
+
+    it("does not change order when dropped on the same step", () => {
+      const recipe: Recipe = {
+        ...baseRecipe,
+        steps: [
+          { stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null },
+          { stepId: 2, stepNumber: 2, description: "Add the sauce", tip: null },
+        ],
+      }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      const stepRows = screen
+        .getAllByPlaceholderText("Describe this step…")
+        .map((el) => el.closest("[draggable]")) as HTMLElement[]
+
+      fireEvent.dragStart(stepRows[0])
+      fireEvent.dragOver(stepRows[0])
+      fireEvent.drop(stepRows[0])
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Boil the pasta")
+      expect(textareas[1].value).toBe("Add the sauce")
     })
   })
 
