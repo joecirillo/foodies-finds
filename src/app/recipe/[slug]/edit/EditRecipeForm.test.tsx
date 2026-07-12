@@ -420,6 +420,35 @@ describe("EditRecipeForm", () => {
       expect(textareas[1].value).toBe("Boil the pasta")
     })
 
+    it("reorders steps via touch drag on mobile", () => {
+      const recipe: Recipe = {
+        ...baseRecipe,
+        steps: [
+          { stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null },
+          { stepId: 2, stepNumber: 2, description: "Add the sauce", tip: null },
+        ],
+      }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      const stepRows = document.querySelectorAll("[data-step-index]")
+      Object.defineProperty(document, "elementFromPoint", {
+        value: vi.fn().mockReturnValue(stepRows[1]),
+        configurable: true,
+        writable: true,
+      })
+
+      const handle = screen.getAllByLabelText("Drag to reorder step")[0]
+      fireEvent(handle, new TouchEvent("touchstart", { bubbles: true }))
+      fireEvent(handle, new TouchEvent("touchmove", { bubbles: true, touches: [{ clientX: 0, clientY: 100 } as Touch] }))
+      fireEvent(handle, new TouchEvent("touchend", { bubbles: true }))
+
+      Object.defineProperty(document, "elementFromPoint", { value: undefined, configurable: true })
+
+      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      expect(textareas[0].value).toBe("Add the sauce")
+      expect(textareas[1].value).toBe("Boil the pasta")
+    })
+
     it("does not change order when dropped on the same step", () => {
       const recipe: Recipe = {
         ...baseRecipe,
