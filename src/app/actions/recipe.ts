@@ -13,7 +13,14 @@ import type { AddRecipePayload, PresignedImageUpload } from "@/types/recipe"
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
 type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
 
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"])
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+])
 
 export const presignRecipeImageUploadAction = async (
   contentType: string,

@@ -319,6 +319,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         await putToPresignedUrl(presign.uploadUrl, imageFile)
       } catch (err) {
         const message = err instanceof Error ? err.message : "Failed to upload image"
+        console.error("Image upload to R2 failed:", err)
         setErrors((prev) => ({ ...prev, image: message }))
         setIsSubmitting(false)
         return
@@ -484,7 +485,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                 className="sr-only"
                 onChange={(e) => {
                   setImageFile(e.target.files?.[0])

@@ -200,6 +200,18 @@ describe("presignRecipeImageUploadAction", () => {
     expect(mockPresignRecipeImageUpload).not.toHaveBeenCalled()
   })
 
+  it("accepts image/heic", async () => {
+    const presigned: PresignedImageUpload = {
+      uploadUrl: "https://account.r2.cloudflarestorage.com/signed",
+      key: "recipes/abc-123.heic",
+      imageUrl: "https://cdn.foodiesfinds.com/recipes/abc-123.heic",
+    }
+    mockPresignRecipeImageUpload.mockResolvedValueOnce(presigned)
+
+    const result = await presignRecipeImageUploadAction("image/heic", 1024)
+    expect(result).toEqual({ ok: true, ...presigned })
+  })
+
   it("returns the API error message when presigning fails", async () => {
     const err = Object.assign(new Error("API 400"), { code: "400" })
     mockPresignRecipeImageUpload.mockRejectedValueOnce(err)
