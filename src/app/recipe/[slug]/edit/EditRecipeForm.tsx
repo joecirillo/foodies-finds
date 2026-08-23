@@ -356,6 +356,10 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     })
 
     if (result.ok) {
+      // Replaced the image: the old one is now orphaned in R2, clean it up.
+      if (newImageKey && existingImageUrl) {
+        deleteRecipeImageAction(existingImageUrl)
+      }
       router.push(`/recipe/${recipe.id}`)
       router.refresh()
     } else {

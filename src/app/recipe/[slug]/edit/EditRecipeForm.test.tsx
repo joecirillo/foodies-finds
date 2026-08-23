@@ -370,6 +370,24 @@ describe("EditRecipeForm", () => {
       })
     })
 
+    it("deletes the old image once the recipe is updated with a new one", async () => {
+      stubFetch(true)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      const recipe = { ...baseRecipe, imageUrl: "https://cdn.foodiesfinds.com/recipes/old-123.jpg" }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockDeleteRecipeImageAction).toHaveBeenCalledWith(
+          "https://cdn.foodiesfinds.com/recipes/old-123.jpg",
+        )
+      })
+    })
+
     it("does not delete anything when there was no previous image", async () => {
       stubFetch(true)
       mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
