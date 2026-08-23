@@ -7,6 +7,7 @@ import type {
   Ingredient,
   Tag,
   Unit,
+  PresignedImageUpload,
 } from "@/types/recipe"
 
 async function apiFetch<T>(path: string, revalidate: number | false = 60): Promise<T> {
@@ -78,6 +79,9 @@ export const addRecipe = (payload: AddRecipePayload) => apiPost<Recipe>("/recipe
 export const updateRecipe = (id: number | string, payload: AddRecipePayload) =>
   apiPatch<Recipe>(`/recipes/${id}`, payload)
 
+export const updateRecipeImage = (id: number | string, imageUrl: string | null) =>
+  apiPatch<Recipe>(`/recipes/${id}`, { imageUrl })
+
 export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]> => {
   const res = await fetch(`/api/search/recipes?name=${encodeURIComponent(name)}`)
   if (!res.ok) {
@@ -98,6 +102,9 @@ export const searchTags = (query: string) =>
   apiFetch<Tag[]>(`/tags?query=${encodeURIComponent(query)}`)
 
 export const listUnits = () => apiFetch<Unit[]>("/units", 3600)
+
+export const presignRecipeImageUpload = (contentType: string, contentLength: number) =>
+  apiPost<PresignedImageUpload>("/recipes/images/presign", { contentType, contentLength })
 
 // R2 image keys look like "recipes/<uuid>.jpg"; recipe.imageUrl may be that bare key or a full
 // URL (recipe-api resolves stored keys to a full URL on read). Accept either: an already-bare

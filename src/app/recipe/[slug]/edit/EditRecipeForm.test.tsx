@@ -17,13 +17,21 @@ vi.mock("next/link", () => ({
 
 vi.mock("@/app/actions/recipe", () => ({
   updateRecipeAction: vi.fn(),
+  presignRecipeImageUploadAction: vi.fn(),
+  deleteRecipeImageAction: vi.fn(),
 }))
 
 import { useRouter } from "next/navigation"
-import { updateRecipeAction } from "@/app/actions/recipe"
+import {
+  updateRecipeAction,
+  presignRecipeImageUploadAction,
+  deleteRecipeImageAction,
+} from "@/app/actions/recipe"
 
 const mockUseRouter = vi.mocked(useRouter)
 const mockUpdateRecipeAction = vi.mocked(updateRecipeAction)
+const mockPresignRecipeImageUploadAction = vi.mocked(presignRecipeImageUploadAction)
+const mockDeleteRecipeImageAction = vi.mocked(deleteRecipeImageAction)
 
 const baseRecipe: Recipe = {
   id: 1,
@@ -70,6 +78,8 @@ beforeEach(() => {
     prefetch: vi.fn(),
   } as ReturnType<typeof useRouter>)
   mockUpdateRecipeAction.mockReset()
+  mockPresignRecipeImageUploadAction.mockReset()
+  mockDeleteRecipeImageAction.mockReset()
 
   vi.stubGlobal(
     "fetch",
@@ -310,6 +320,124 @@ describe("EditRecipeForm", () => {
           }),
         )
       })
+    })
+  })
+
+  describe("image upload", () => {
+    const PRESIGNED = {
+      ok: true as const,
+      uploadUrl: "https://account.r2.cloudflarestorage.com/signed",
+      key: "recipes/new-456.jpg",
+      imageUrl: "https://cdn.foodiesfinds.com/recipes/new-456.jpg",
+    }
+
+    function stubFetch(putOk: boolean) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+          if (url === PRESIGNED.uploadUrl && init?.method === "PUT") {
+            return Promise.resolve({ ok: putOk, status: putOk ? 200 : 500 })
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        }),
+      )
+    }
+
+    async function selectImageFile(user: ReturnType<typeof userEvent.setup>) {
+      const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      await user.upload(input, file)
+    }
+
+    it("presigns and uploads to R2 before submitting the new image key", async () => {
+      stubFetch(true)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith("image/jpeg", expect.any(Number))
+      })
+      await waitFor(() => {
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ imageUrl: PRESIGNED.key }),
+        )
+      })
+    })
+
+    it("does not delete anything when there was no previous image", async () => {
+      stubFetch(true)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
+      expect(mockDeleteRecipeImageAction).not.toHaveBeenCalled()
+    })
+
+    it("shows an error and does not submit when presigning fails", async () => {
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce({ ok: false, error: "boom" })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(screen.getByText("boom", { selector: "p" })).toBeInTheDocument()
+      })
+      expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
+    })
+
+    it("shows an error and rolls back the upload when the PUT to R2 fails", async () => {
+      stubFetch(false)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(screen.getByText("Image upload failed (500)", { selector: "p" })).toBeInTheDocument()
+      })
+      expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
+    })
+
+    it("rolls back the new upload when the recipe update fails", async () => {
+      stubFetch(true)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: false, error: "Error" })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockDeleteRecipeImageAction).toHaveBeenCalledWith(PRESIGNED.key)
+      })
+      expect(mockPush).not.toHaveBeenCalled()
+    })
+
+    it("does not call the presign action when no new image is selected", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
+      expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
     })
   })
 

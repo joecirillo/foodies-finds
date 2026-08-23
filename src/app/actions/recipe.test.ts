@@ -1,26 +1,47 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { AddRecipePayload, Recipe } from "@/types/recipe"
+import type { AddRecipePayload, PresignedImageUpload, Recipe } from "@/types/recipe"
 
 vi.mock("@/lib/api", () => ({
   addRecipe: vi.fn(),
   updateRecipe: vi.fn(),
+  updateRecipeImage: vi.fn(),
+  presignRecipeImageUpload: vi.fn(),
+  deleteRecipeImage: vi.fn(),
 }))
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
 }))
 
-import { addRecipe, updateRecipe } from "@/lib/api"
+import {
+  addRecipe,
+  updateRecipe,
+  updateRecipeImage,
+  presignRecipeImageUpload,
+  deleteRecipeImage,
+} from "@/lib/api"
 import { revalidatePath } from "next/cache"
-import { addRecipeAction, updateRecipeAction } from "./recipe"
+import {
+  addRecipeAction,
+  updateRecipeAction,
+  presignRecipeImageUploadAction,
+  attachRecipeImageAction,
+  deleteRecipeImageAction,
+} from "./recipe"
 
 const mockAddRecipe = vi.mocked(addRecipe)
 const mockUpdateRecipe = vi.mocked(updateRecipe)
+const mockUpdateRecipeImage = vi.mocked(updateRecipeImage)
+const mockPresignRecipeImageUpload = vi.mocked(presignRecipeImageUpload)
+const mockDeleteRecipeImage = vi.mocked(deleteRecipeImage)
 const mockRevalidatePath = vi.mocked(revalidatePath)
 
 beforeEach(() => {
   mockAddRecipe.mockReset()
   mockUpdateRecipe.mockReset()
+  mockUpdateRecipeImage.mockReset()
+  mockPresignRecipeImageUpload.mockReset()
+  mockDeleteRecipeImage.mockReset()
   mockRevalidatePath.mockReset()
 })
 
@@ -154,5 +175,68 @@ describe("updateRecipeAction", () => {
 
     await updateRecipeAction(7, { name: "Pizza" } as AddRecipePayload)
     expect(mockRevalidatePath).not.toHaveBeenCalled()
+  })
+})
+
+describe("presignRecipeImageUploadAction", () => {
+  it("returns { ok: true, ...presigned } on success", async () => {
+    const presigned: PresignedImageUpload = {
+      uploadUrl: "https://account.r2.cloudflarestorage.com/signed",
+      key: "recipes/abc-123.jpg",
+      imageUrl: "https://cdn.foodiesfinds.com/recipes/abc-123.jpg",
+    }
+    mockPresignRecipeImageUpload.mockResolvedValueOnce(presigned)
+
+    const result = await presignRecipeImageUploadAction("image/jpeg", 1024)
+    expect(result).toEqual({ ok: true, ...presigned })
+  })
+
+  it("rejects an unsupported content type before calling the API", async () => {
+    const result = await presignRecipeImageUploadAction("application/pdf", 1024)
+    expect(result).toEqual({
+      ok: false,
+      error: "File must be jpeg, png, heic, webp, or gif",
+    })
+    expect(mockPresignRecipeImageUpload).not.toHaveBeenCalled()
+  })
+
+  it("returns the API error message when presigning fails", async () => {
+    const err = Object.assign(new Error("API 400"), { code: "400" })
+    mockPresignRecipeImageUpload.mockRejectedValueOnce(err)
+
+    const result = await presignRecipeImageUploadAction("image/jpeg", 1024)
+    expect(result).toEqual({ ok: false, error: "API 400" })
+  })
+})
+
+describe("attachRecipeImageAction", () => {
+  it("returns { ok: true } and calls updateRecipeImage with the id and key", async () => {
+    mockUpdateRecipeImage.mockResolvedValueOnce({ id: 7 } as Recipe)
+
+    const result = await attachRecipeImageAction(7, "recipes/abc-123.jpg")
+    expect(result).toEqual({ ok: true })
+    expect(mockUpdateRecipeImage).toHaveBeenCalledWith(7, "recipes/abc-123.jpg")
+  })
+
+  it("returns { ok: false } without throwing when updateRecipeImage fails", async () => {
+    mockUpdateRecipeImage.mockRejectedValueOnce(new Error("API 500"))
+
+    const result = await attachRecipeImageAction(7, "recipes/abc-123.jpg")
+    expect(result).toEqual({ ok: false })
+  })
+})
+
+describe("deleteRecipeImageAction", () => {
+  it("calls deleteRecipeImage with the given value", async () => {
+    mockDeleteRecipeImage.mockResolvedValueOnce(undefined)
+
+    await deleteRecipeImageAction("recipes/abc-123.jpg")
+    expect(mockDeleteRecipeImage).toHaveBeenCalledWith("recipes/abc-123.jpg")
+  })
+
+  it("does not throw when deleteRecipeImage fails", async () => {
+    mockDeleteRecipeImage.mockRejectedValueOnce(new Error("API 500"))
+
+    await expect(deleteRecipeImageAction("recipes/abc-123.jpg")).resolves.toBeUndefined()
   })
 })

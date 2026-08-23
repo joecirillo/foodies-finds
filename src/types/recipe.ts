@@ -4,6 +4,12 @@ export type RecipeSearchResult = {
   imageUrl?: string
 }
 
+export type PresignedImageUpload = {
+  uploadUrl: string
+  key: string
+  imageUrl: string
+}
+
 export type ApiResponse<T> = {
   timestamp: string
   status: string

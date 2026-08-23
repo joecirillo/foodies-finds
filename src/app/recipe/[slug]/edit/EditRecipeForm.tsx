@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   updateRecipeAction,
-  uploadRecipeImageAction,
+  presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
+import { putToPresignedUrl } from "@/lib/upload"
 import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
@@ -305,18 +306,24 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    let uploadedImageUrl: string | null = null
+    let newImageKey: string | null = null
 
     if (imageFile) {
-      const fd = new FormData()
-      fd.append("file", imageFile)
-      const upload = await uploadRecipeImageAction(fd)
-      if (!upload.ok) {
-        setErrors((prev) => ({ ...prev, image: upload.error }))
+      const presign = await presignRecipeImageUploadAction(imageFile.type, imageFile.size)
+      if (!presign.ok) {
+        setErrors((prev) => ({ ...prev, image: presign.error }))
         setIsSubmitting(false)
         return
       }
-      uploadedImageUrl = upload.imageUrl
+      try {
+        await putToPresignedUrl(presign.uploadUrl, imageFile)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload image"
+        setErrors((prev) => ({ ...prev, image: message }))
+        setIsSubmitting(false)
+        return
+      }
+      newImageKey = presign.key
     }
 
     const result = await updateRecipeAction(recipe.id as number, {
@@ -345,15 +352,15 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           description: toSentenceCase(s.description.trim()),
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
-      imageUrl: uploadedImageUrl ?? existingImageUrl,
+      imageUrl: newImageKey ?? existingImageUrl,
     })
 
     if (result.ok) {
       router.push(`/recipe/${recipe.id}`)
       router.refresh()
     } else {
-      if (uploadedImageUrl) {
-        deleteRecipeImageAction(uploadedImageUrl)
+      if (newImageKey) {
+        deleteRecipeImageAction(newImageKey)
       }
       setSubmitError(result.error)
       setIsSubmitting(false)
