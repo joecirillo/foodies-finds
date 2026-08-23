@@ -1,42 +1,71 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { addRecipe, updateRecipe, uploadRecipeImage, deleteRecipeImage } from "@/lib/api"
-import type { AddRecipePayload } from "@/types/recipe"
+import {
+  addRecipe,
+  updateRecipe,
+  updateRecipeImage,
+  presignRecipeImageUpload,
+  deleteRecipeImage,
+} from "@/lib/api"
+import type { AddRecipePayload, PresignedImageUpload } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
-type UploadResult = { ok: true; imageUrl: string } | { ok: false; error: string }
+type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
 
-const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"])
+const ALLOWED_IMAGE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/heic",
+  "image/heif",
+])
 
-export const uploadRecipeImageAction = async (formData: FormData): Promise<UploadResult> => {
-  const file = formData.get("file")
-  if (!file || !(file instanceof Blob)) {
-    return { ok: false, error: "No file provided" }
-  }
-  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+export const presignRecipeImageUploadAction = async (
+  contentType: string,
+  contentLength: number,
+): Promise<PresignResult> => {
+  if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
     return { ok: false, error: "File must be jpeg, png, heic, webp, or gif" }
   }
-  console.log("Uploading image file:", file.name, "type:", file.type, "size:", file.size)
+  console.log("Requesting presigned upload URL:", "type:", contentType, "size:", contentLength)
 
   try {
-    const imageUrl = await uploadRecipeImage(file)
-    console.log("Image uploaded successfully:", imageUrl)
-    return { ok: true, imageUrl }
+    const presigned = await presignRecipeImageUpload(contentType, contentLength)
+    console.log("Presigned upload URL created:", presigned.key)
+    return { ok: true, ...presigned }
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to upload image. Please try again."
-    console.error("Failed to upload image:", file.name, message)
+    const message = err instanceof Error ? err.message : "Failed to prepare image upload. Please try again."
+    console.error("Failed to presign image upload:", message)
     return { ok: false, error: message }
   }
 }
 
-export const deleteRecipeImageAction = async (imageUrl: string): Promise<void> => {
-  console.log("Deleting image:", imageUrl)
-  await deleteRecipeImage(imageUrl)
-    .then(() => console.log("Image deleted successfully:", imageUrl))
+// Best-effort: the recipe already exists by the time this runs (create flow), so a failure
+// here shouldn't be treated as fatal by the caller — the recipe is saved either way.
+export const attachRecipeImageAction = async (
+  id: number,
+  imageUrl: string,
+): Promise<{ ok: boolean }> => {
+  try {
+    await updateRecipeImage(id, imageUrl)
+    console.log("Image attached to recipe:", id, imageUrl)
+    return { ok: true }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to attach image"
+    console.error("Failed to attach image to recipe:", id, message)
+    return { ok: false }
+  }
+}
+
+export const deleteRecipeImageAction = async (imageUrlOrKey: string): Promise<void> => {
+  console.log("Deleting image:", imageUrlOrKey)
+  await deleteRecipeImage(imageUrlOrKey)
+    .then(() => console.log("Image deleted successfully:", imageUrlOrKey))
     .catch((err) => {
       const message = err instanceof Error ? err.message : "Failed to delete image"
-      console.error("Failed to delete image:", imageUrl, message)
+      console.error("Failed to delete image:", imageUrlOrKey, message)
     })
 }
 

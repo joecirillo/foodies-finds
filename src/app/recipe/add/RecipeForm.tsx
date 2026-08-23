@@ -2,11 +2,13 @@
 
 import {
   addRecipeAction,
+  attachRecipeImageAction,
   deleteRecipeImageAction,
-  uploadRecipeImageAction,
+  presignRecipeImageUploadAction,
 } from "@/app/actions/recipe"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase } from "@/lib/utils/text"
 import type { IngredientRow, StepRow, Unit } from "@/types/recipe"
 import { ArrowLeft02Icon, Delete02Icon, DragDropVerticalIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
@@ -295,20 +297,8 @@ export const RecipeForm = () => {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    let uploadedImageUrl: string | null = null
-
-    if (imageFile) {
-      const fd = new FormData()
-      fd.append("file", imageFile)
-      const upload = await uploadRecipeImageAction(fd)
-      if (!upload.ok) {
-        setErrors((prev) => ({ ...prev, image: upload.error }))
-        setIsSubmitting(false)
-        return
-      }
-      uploadedImageUrl = upload.imageUrl
-    }
-
+    // The image is attached to the recipe by name/id, so the recipe must exist first —
+    // upload happens as a follow-up step once addRecipeAction returns a real id.
     const result = await addRecipeAction({
       name: name.trim(),
       description: description.trim() || null,
@@ -335,18 +325,34 @@ export const RecipeForm = () => {
           description: toSentenceCase(s.description.trim()),
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
-      imageUrl: uploadedImageUrl,
+      imageUrl: null,
     })
 
-    if (result.ok) {
-      router.push(`/recipe/${result.id}`)
-    } else {
-      if (uploadedImageUrl) {
-        deleteRecipeImageAction(uploadedImageUrl)
-      }
+    if (!result.ok) {
       setSubmitError(result.error)
       setIsSubmitting(false)
+      return
     }
+
+    if (imageFile) {
+      const presign = await presignRecipeImageUploadAction(imageFile.type, imageFile.size)
+      if (presign.ok) {
+        try {
+          await putToPresignedUrl(presign.uploadUrl, imageFile)
+          const attached = await attachRecipeImageAction(result.id, presign.key)
+          if (!attached.ok) deleteRecipeImageAction(presign.key)
+        } catch (err) {
+          console.error("Image upload to R2 failed:", err)
+          deleteRecipeImageAction(presign.key)
+        }
+      } else {
+        console.error("Failed to presign image upload:", presign.error)
+      }
+      // The recipe itself saved successfully regardless of image outcome — don't block
+      // navigation on it; the user can retry the photo from the edit page if it failed.
+    }
+
+    router.push(`/recipe/${result.id}`)
   }
 
   return (
@@ -461,7 +467,7 @@ export const RecipeForm = () => {
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                 className="sr-only"
                 onChange={(e) => {
                   setImageFile(e.target.files?.[0])

@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   updateRecipeAction,
-  uploadRecipeImageAction,
+  presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
+import { putToPresignedUrl } from "@/lib/upload"
 import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
@@ -305,18 +306,25 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setIsSubmitting(true)
     setSubmitError(null)
 
-    let uploadedImageUrl: string | null = null
+    let newImageKey: string | null = null
 
     if (imageFile) {
-      const fd = new FormData()
-      fd.append("file", imageFile)
-      const upload = await uploadRecipeImageAction(fd)
-      if (!upload.ok) {
-        setErrors((prev) => ({ ...prev, image: upload.error }))
+      const presign = await presignRecipeImageUploadAction(imageFile.type, imageFile.size)
+      if (!presign.ok) {
+        setErrors((prev) => ({ ...prev, image: presign.error }))
         setIsSubmitting(false)
         return
       }
-      uploadedImageUrl = upload.imageUrl
+      try {
+        await putToPresignedUrl(presign.uploadUrl, imageFile)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload image"
+        console.error("Image upload to R2 failed:", err)
+        setErrors((prev) => ({ ...prev, image: message }))
+        setIsSubmitting(false)
+        return
+      }
+      newImageKey = presign.key
     }
 
     const result = await updateRecipeAction(recipe.id as number, {
@@ -345,15 +353,19 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           description: toSentenceCase(s.description.trim()),
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
-      imageUrl: uploadedImageUrl ?? existingImageUrl,
+      imageUrl: newImageKey ?? existingImageUrl,
     })
 
     if (result.ok) {
+      // Replaced the image: the old one is now orphaned in R2, clean it up.
+      if (newImageKey && existingImageUrl) {
+        deleteRecipeImageAction(existingImageUrl)
+      }
       router.push(`/recipe/${recipe.id}`)
       router.refresh()
     } else {
-      if (uploadedImageUrl) {
-        deleteRecipeImageAction(uploadedImageUrl)
+      if (newImageKey) {
+        deleteRecipeImageAction(newImageKey)
       }
       setSubmitError(result.error)
       setIsSubmitting(false)
@@ -473,7 +485,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
                 className="sr-only"
                 onChange={(e) => {
                   setImageFile(e.target.files?.[0])

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { AddRecipePayload } from "@/types/recipe"
-import { addRecipe, getRecipe } from "./api"
+import { addRecipe, getRecipe, presignRecipeImageUpload, deleteRecipeImage } from "./api"
 
 const mockFetch = vi.fn()
 vi.stubGlobal("fetch", mockFetch)
@@ -112,6 +112,69 @@ describe("getRecipe", () => {
     await expect(getRecipe(99)).rejects.toMatchObject({
       message: "API 404",
       code: "404",
+    })
+  })
+})
+
+describe("presignRecipeImageUpload", () => {
+  it("returns the presigned upload payload on success", async () => {
+    const presigned = {
+      uploadUrl: "https://account.r2.cloudflarestorage.com/signed",
+      key: "recipes/abc-123.jpg",
+      imageUrl: "https://cdn.foodiesfinds.com/recipes/abc-123.jpg",
+    }
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: presigned }),
+    })
+
+    const result = await presignRecipeImageUpload("image/jpeg", 1024)
+    expect(result).toEqual(presigned)
+  })
+
+  it("throws with the API error message on a non-ok response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Unsupported file type" }),
+    })
+
+    await expect(presignRecipeImageUpload("application/pdf", 1024)).rejects.toMatchObject({
+      message: "Unsupported file type",
+      code: "400",
+    })
+  })
+})
+
+describe("deleteRecipeImage", () => {
+  it("sends the key as a query param when given a bare key", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true })
+
+    await deleteRecipeImage("recipes/abc-123.jpg")
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/recipes/images?key=recipes%2Fabc-123.jpg"),
+      expect.objectContaining({ method: "DELETE" }),
+    )
+  })
+
+  it("derives the key from a full imageUrl before sending", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true })
+
+    await deleteRecipeImage("https://cdn.foodiesfinds.com/recipes/abc-123.jpg")
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining("/recipes/images?key=recipes%2Fabc-123.jpg"),
+      expect.objectContaining({ method: "DELETE" }),
+    )
+  })
+
+  it("throws Error with status code on non-ok response", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: false, status: 400 })
+
+    await expect(deleteRecipeImage("recipes/abc-123.jpg")).rejects.toMatchObject({
+      message: "API 400",
+      code: "400",
     })
   })
 })

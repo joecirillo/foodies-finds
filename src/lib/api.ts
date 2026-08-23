@@ -7,6 +7,7 @@ import type {
   Ingredient,
   Tag,
   Unit,
+  PresignedImageUpload,
 } from "@/types/recipe"
 
 async function apiFetch<T>(path: string, revalidate: number | false = 60): Promise<T> {
@@ -78,6 +79,9 @@ export const addRecipe = (payload: AddRecipePayload) => apiPost<Recipe>("/recipe
 export const updateRecipe = (id: number | string, payload: AddRecipePayload) =>
   apiPatch<Recipe>(`/recipes/${id}`, payload)
 
+export const updateRecipeImage = (id: number | string, imageUrl: string | null) =>
+  apiPatch<Recipe>(`/recipes/${id}`, { imageUrl })
+
 export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]> => {
   const res = await fetch(`/api/search/recipes?name=${encodeURIComponent(name)}`)
   if (!res.ok) {
@@ -99,36 +103,25 @@ export const searchTags = (query: string) =>
 
 export const listUnits = () => apiFetch<Unit[]>("/units", 3600)
 
-export const uploadRecipeImage = async (file: Blob): Promise<string> => {
-  const form = new FormData()
-  form.append("file", file)
+export const presignRecipeImageUpload = (contentType: string, contentLength: number) =>
+  apiPost<PresignedImageUpload>("/recipes/images/presign", { contentType, contentLength })
 
-  const res = await fetch(`${process.env.API_URL}/recipes/images`, {
-    method: "POST",
-    headers: { "x-api-key": process.env.API_KEY ?? "" },
-    body: form,
-  })
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    const message = body?.message ?? `API ${res.status}`
-    const err = new Error(message)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
+// R2 image keys look like "recipes/<uuid>.jpg"; recipe.imageUrl may be that bare key or a full
+// URL (recipe-api resolves stored keys to a full URL on read). Accept either: an already-bare
+// key round-trips unchanged since it isn't a parseable URL.
+function toImageKey(imageUrlOrKey: string): string {
+  try {
+    return new URL(imageUrlOrKey).pathname.replace(/^\//, "")
+  } catch {
+    return imageUrlOrKey
   }
-
-  const body = await res.json()
-  return body.data ?? body.imageUrl
 }
 
-export const deleteRecipeImage = async (imageUrl: string): Promise<void> => {
-  const res = await fetch(`${process.env.API_URL}/recipes/images`, {
+export const deleteRecipeImage = async (imageUrlOrKey: string): Promise<void> => {
+  const key = toImageKey(imageUrlOrKey)
+  const res = await fetch(`${process.env.API_URL}/recipes/images?key=${encodeURIComponent(key)}`, {
     method: "DELETE",
-    headers: {
-      "x-api-key": process.env.API_KEY ?? "",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ imageUrl }),
+    headers: { "x-api-key": process.env.API_KEY ?? "" },
   })
 
   if (!res.ok) {

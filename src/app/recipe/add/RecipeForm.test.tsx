@@ -16,13 +16,24 @@ vi.mock("next/link", () => ({
 
 vi.mock("@/app/actions/recipe", () => ({
   addRecipeAction: vi.fn(),
+  presignRecipeImageUploadAction: vi.fn(),
+  attachRecipeImageAction: vi.fn(),
+  deleteRecipeImageAction: vi.fn(),
 }))
 
 import { useRouter } from "next/navigation"
-import { addRecipeAction } from "@/app/actions/recipe"
+import {
+  addRecipeAction,
+  presignRecipeImageUploadAction,
+  attachRecipeImageAction,
+  deleteRecipeImageAction,
+} from "@/app/actions/recipe"
 
 const mockUseRouter = vi.mocked(useRouter)
 const mockAddRecipeAction = vi.mocked(addRecipeAction)
+const mockPresignRecipeImageUploadAction = vi.mocked(presignRecipeImageUploadAction)
+const mockAttachRecipeImageAction = vi.mocked(attachRecipeImageAction)
+const mockDeleteRecipeImageAction = vi.mocked(deleteRecipeImageAction)
 
 window.HTMLElement.prototype.scrollIntoView = vi.fn()
 
@@ -39,6 +50,9 @@ beforeEach(() => {
     refresh: vi.fn(),
   } as ReturnType<typeof useRouter>)
   mockAddRecipeAction.mockReset()
+  mockPresignRecipeImageUploadAction.mockReset()
+  mockAttachRecipeImageAction.mockReset()
+  mockDeleteRecipeImageAction.mockReset()
 
   vi.stubGlobal(
     "fetch",
@@ -53,6 +67,27 @@ afterEach(() => {
   vi.useRealTimers()
   vi.unstubAllGlobals()
 })
+
+async function fillRequiredFields(
+  user: ReturnType<typeof userEvent.setup>,
+  container: HTMLElement,
+) {
+  await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
+
+  const spinbuttons = screen.getAllByRole("spinbutton")
+  await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "Test Recipe")
+  await user.type(spinbuttons[0], "10") // prep time
+  await user.type(spinbuttons[2], "2") // servings
+
+  await user.type(screen.getByPlaceholderText("Search cuisines…"), "Italian")
+  await user.keyboard("{Enter}")
+
+  await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  await user.selectOptions(container.querySelector("select")!, "1")
+
+  await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
+}
 
 describe("RecipeForm", () => {
   describe("validation", () => {
@@ -115,21 +150,7 @@ describe("RecipeForm", () => {
       const user = userEvent.setup()
       const { container } = render(<RecipeForm />)
 
-      await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
-
-      const spinbuttons = screen.getAllByRole("spinbutton")
-      await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "Test Recipe")
-      await user.type(spinbuttons[0], "10") // prep time
-      await user.type(spinbuttons[2], "2") // servings
-
-      await user.type(screen.getByPlaceholderText("Search cuisines…"), "Italian")
-      await user.keyboard("{Enter}")
-
-      await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      await user.selectOptions(container.querySelector("select")!, "1")
-
-      await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
+      await fillRequiredFields(user, container)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
 
@@ -138,6 +159,139 @@ describe("RecipeForm", () => {
           expect.objectContaining({ author: "Anonymous" }),
         )
       })
+    })
+  })
+
+  describe("image upload", () => {
+    const PRESIGNED = {
+      ok: true as const,
+      uploadUrl: "https://account.r2.cloudflarestorage.com/signed",
+      key: "recipes/abc-123.jpg",
+      imageUrl: "https://cdn.foodiesfinds.com/recipes/abc-123.jpg",
+    }
+
+    function stubFetch(putOk: boolean) {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+          if (url === "/api/units") {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve([{ id: 1, name: "gram", abbreviation: "g" }]),
+            })
+          }
+          if (url === PRESIGNED.uploadUrl && init?.method === "PUT") {
+            return Promise.resolve({ ok: putOk, status: putOk ? 200 : 500 })
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        }),
+      )
+    }
+
+    async function selectImageFile(user: ReturnType<typeof userEvent.setup>) {
+      const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      await user.upload(input, file)
+    }
+
+    it("presigns, uploads to R2, and attaches the image after the recipe is created", async () => {
+      stubFetch(true)
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: true })
+
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+      await fillRequiredFields(user, container)
+      await selectImageFile(user)
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockAddRecipeAction).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: null }))
+      })
+      await waitFor(() => {
+        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith("image/jpeg", expect.any(Number))
+      })
+      await waitFor(() => {
+        expect(mockAttachRecipeImageAction).toHaveBeenCalledWith(1, PRESIGNED.key)
+      })
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+      })
+      expect(mockDeleteRecipeImageAction).not.toHaveBeenCalled()
+    })
+
+    it("still navigates when the recipe was created but presigning fails", async () => {
+      stubFetch(true)
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce({ ok: false, error: "boom" })
+
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+      await fillRequiredFields(user, container)
+      await selectImageFile(user)
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+      })
+      expect(mockAttachRecipeImageAction).not.toHaveBeenCalled()
+    })
+
+    it("deletes the orphaned upload when attaching the image fails", async () => {
+      stubFetch(true)
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: false })
+
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+      await fillRequiredFields(user, container)
+      await selectImageFile(user)
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockDeleteRecipeImageAction).toHaveBeenCalledWith(PRESIGNED.key)
+      })
+      expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+    })
+
+    it("deletes the orphaned upload when the PUT to R2 fails", async () => {
+      stubFetch(false)
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+      await fillRequiredFields(user, container)
+      await selectImageFile(user)
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockDeleteRecipeImageAction).toHaveBeenCalledWith(PRESIGNED.key)
+      })
+      expect(mockAttachRecipeImageAction).not.toHaveBeenCalled()
+      expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+    })
+
+    it("does not call the presign action when no image was selected", async () => {
+      stubFetch(true)
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+      await fillRequiredFields(user, container)
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+      })
+      expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
     })
   })
 
