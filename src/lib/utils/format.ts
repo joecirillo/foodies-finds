@@ -7,6 +7,6 @@ export const formatMinutes = (mins: number): string => {
 
 export const formatQuantity = (qty: number | null, unit: string | null): string => {
   if (qty === null) return ""
-  const qtyStr = qty % 1 === 0 ? String(qty) : qty.toFixed(1)
+  const qtyStr = String(Math.round(qty * 100) / 100)
   return unit ? `${qtyStr} ${unit}` : qtyStr
 }
