@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon, DragDropVerticalIcon } from "@hugeicons/core-free-icons"
+import { CuisinePicker } from "@/components/recipe/CuisinePicker"
+import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -14,7 +16,7 @@ import {
 } from "@/app/actions/recipe"
 import { putToPresignedUrl } from "@/lib/upload"
 import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
-import type { Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
+import type { EntityOption, Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
 
@@ -56,17 +58,10 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const [servings, setServings] = useState(recipe.servings != null ? String(recipe.servings) : "")
   const [calories, setCalories] = useState(recipe.calories != null ? String(recipe.calories) : "")
 
-  const [cuisineQuery, setCuisineQuery] = useState("")
-  const [cuisineResults, setCuisineResults] = useState<SearchResult[]>([])
-  const [cuisineDropdownOpen, setCuisineDropdownOpen] = useState(false)
-  const [selectedCuisine, setSelectedCuisine] = useState<SearchResult | null>(
+  const [selectedCuisine, setSelectedCuisine] = useState<EntityOption | null>(
     recipe.cuisine ?? null,
   )
-
-  const [tagQuery, setTagQuery] = useState("")
-  const [tagResults, setTagResults] = useState<SearchResult[]>([])
-  const [tagDropdownOpen, setTagDropdownOpen] = useState(false)
-  const [selectedTags, setSelectedTags] = useState<SearchResult[]>(recipe.tags)
+  const [selectedTags, setSelectedTags] = useState<EntityOption[]>(recipe.tags)
 
   const [ingredients, setIngredients] = useState<IngredientRow[]>(
     recipe.ingredients.length > 0
@@ -123,36 +118,6 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const debounce = (key: string, fn: () => void, delay = 300) => {
     if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
     debounceTimers.current[key] = setTimeout(fn, delay)
-  }
-
-  const handleCuisineQuery = (q: string) => {
-    setCuisineQuery(q)
-    if (!q.trim()) {
-      setCuisineResults([])
-      setCuisineDropdownOpen(false)
-      return
-    }
-    debounce("cuisine", async () => {
-      const res = await fetch(`/api/search/cuisines?query=${encodeURIComponent(q)}`)
-      const data: SearchResult[] = await res.json()
-      setCuisineResults(data)
-      setCuisineDropdownOpen(true)
-    })
-  }
-
-  const handleTagQuery = (q: string) => {
-    setTagQuery(q)
-    if (!q.trim()) {
-      setTagResults([])
-      setTagDropdownOpen(false)
-      return
-    }
-    debounce("tag", async () => {
-      const res = await fetch(`/api/search/tags?query=${encodeURIComponent(q)}`)
-      const data: SearchResult[] = await res.json()
-      setTagResults(data)
-      setTagDropdownOpen(true)
-    })
   }
 
   const updateIngredient = (index: number, updates: Partial<IngredientRow>) => {
@@ -521,104 +486,27 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         {/* Cuisine */}
         <section>
           <SectionHeading>Cuisine</SectionHeading>
-          {selectedCuisine ? (
-            <div className="flex flex-wrap gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                {selectedCuisine.name}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCuisine(null)
-                    setCuisineQuery("")
-                  }}
-                  className="flex items-center text-primary/70 hover:text-primary"
-                  aria-label="Remove cuisine"
-                >
-                  <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
-                </button>
-              </span>
-            </div>
-          ) : (
-            <div className="relative">
-              <Input
-                value={cuisineQuery}
-                onChange={(e) => handleCuisineQuery(e.target.value)}
-                onBlur={() => setTimeout(() => setCuisineDropdownOpen(false), 150)}
-                placeholder="Search cuisines…"
-              />
-              {cuisineDropdownOpen && cuisineResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
-                  {cuisineResults.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onMouseDown={() => {
-                        setSelectedCuisine(c)
-                        setCuisineQuery("")
-                        setCuisineDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted"
-                    >
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          <p className="mb-3 text-xs text-muted-foreground">
+            {"Can't find yours? Type it and press Enter to add a custom cuisine."}
+          </p>
+          <CuisinePicker
+            selected={selectedCuisine}
+            onSelect={setSelectedCuisine}
+            onRemove={() => setSelectedCuisine(null)}
+          />
         </section>
 
         {/* Tags */}
         <section>
           <SectionHeading>Tags</SectionHeading>
-          {selectedTags.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {selectedTags.map((tag) => (
-                <span
-                  key={tag.id}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm font-medium text-secondary-foreground"
-                >
-                  {tag.name}
-                  <button
-                    type="button"
-                    onClick={() => setSelectedTags((prev) => prev.filter((t) => t.id !== tag.id))}
-                    className="flex items-center text-secondary-foreground/70 hover:text-secondary-foreground"
-                    aria-label={`Remove tag ${tag.name}`}
-                  >
-                    <HugeiconsIcon icon={Delete02Icon} className="size-3.5" />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          <div className="relative">
-            <Input
-              value={tagQuery}
-              onChange={(e) => handleTagQuery(e.target.value)}
-              onBlur={() => setTimeout(() => setTagDropdownOpen(false), 150)}
-              placeholder="Search tags…"
-            />
-            {tagDropdownOpen && tagResults.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
-                {tagResults
-                  .filter((t) => !selectedTags.some((s) => s.id === t.id))
-                  .map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onMouseDown={() => {
-                        setSelectedTags((prev) => [...prev, t])
-                        setTagQuery("")
-                        setTagDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2.5 text-left text-sm hover:bg-muted"
-                    >
-                      {t.name}
-                    </button>
-                  ))}
-              </div>
-            )}
-          </div>
+          <p className="mb-3 text-xs text-muted-foreground">
+            {"Can't find a match? Type it and press Enter to add a custom tag."}
+          </p>
+          <TagPicker
+            selected={selectedTags}
+            onAdd={(tag) => setSelectedTags((prev) => [...prev, tag])}
+            onRemove={(tag) => setSelectedTags((prev) => prev.filter((t) => t !== tag))}
+          />
         </section>
 
         {/* Ingredients */}

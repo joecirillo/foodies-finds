@@ -27,6 +27,11 @@ export type Tag = {
   name: string
 }
 
+export type EntityOption = {
+  id: number | null
+  name: string
+}
+
 export type Ingredient = {
   id: number
   name: string
