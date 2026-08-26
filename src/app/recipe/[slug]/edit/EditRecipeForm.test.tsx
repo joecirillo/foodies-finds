@@ -636,6 +636,17 @@ describe("EditRecipeForm", () => {
       expect(screen.queryByText("Italian")).not.toBeInTheDocument()
       expect(screen.getByPlaceholderText("Search cuisines…")).toBeInTheDocument()
     })
+
+    it("sets a custom cuisine as a chip when Enter is pressed in the cuisine input", async () => {
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={{ ...baseRecipe, cuisine: null }} />)
+
+      await user.type(screen.getByPlaceholderText("Search cuisines…"), "Guyanese")
+      await user.keyboard("{Enter}")
+
+      expect(screen.getByText("Guyanese")).toBeInTheDocument()
+      expect(screen.queryByPlaceholderText("Search cuisines…")).not.toBeInTheDocument()
+    })
   })
 
   describe("tags", () => {
@@ -648,6 +659,26 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getByLabelText("Remove tag pasta"))
 
       expect(screen.queryByText("pasta")).not.toBeInTheDocument()
+    })
+
+    it("adds a custom tag chip when Enter is pressed in the tag input", async () => {
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await user.type(screen.getByPlaceholderText("Search tags…"), "weeknight")
+      await user.keyboard("{Enter}")
+
+      expect(screen.getByText("weeknight")).toBeInTheDocument()
+    })
+
+    it("does not add a duplicate custom tag", async () => {
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await user.type(screen.getByPlaceholderText("Search tags…"), "pasta")
+      await user.keyboard("{Enter}")
+
+      expect(screen.getAllByText("pasta")).toHaveLength(1)
     })
   })
 })
