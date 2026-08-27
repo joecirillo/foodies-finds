@@ -15,8 +15,9 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { putToPresignedUrl } from "@/lib/upload"
+import { diffRecipeForUpdate } from "@/lib/recipe-diff"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
-import type { EntityOption, Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
+import type { EntityOption, Recipe, SaveRecipeRequest, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
 
@@ -292,7 +293,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       newImageKey = presign.key
     }
 
-    const result = await updateRecipeAction(recipe.id as number, {
+    const nextPayload: SaveRecipeRequest = {
       name: toTitleCase(name.trim()),
       description: description.trim() || null,
       calories: calories ? parseInt(calories) : null,
@@ -319,7 +320,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
       imageUrl: newImageKey ?? existingImageUrl,
-    })
+    }
+
+    const result = await updateRecipeAction(
+      recipe.id as number,
+      diffRecipeForUpdate(recipe, nextPayload),
+    )
 
     if (result.ok) {
       // Replaced the image: the old one is now orphaned in R2, clean it up.
