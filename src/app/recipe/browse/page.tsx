@@ -50,6 +50,7 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
                   src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/no-image.jpeg"}
                   alt={recipe.name}
                   fill
+                  sizes="(min-width: 1024px) 230px, (min-width: 768px) 165px, 33vw"
                   className="object-contain"
                 />
               </div>

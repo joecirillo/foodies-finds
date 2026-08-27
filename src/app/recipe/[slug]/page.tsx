@@ -103,6 +103,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
             src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/no-image.jpeg"}
             alt={recipe.name}
             fill
+            sizes="(min-width: 640px) 608px, calc(100vw - 2rem)"
             className="object-cover"
             priority
           />
