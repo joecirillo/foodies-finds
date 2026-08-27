@@ -8,7 +8,7 @@ import {
   presignRecipeImageUpload,
   deleteRecipeImage,
 } from "@/lib/api"
-import type { AddRecipePayload, PresignedImageUpload } from "@/types/recipe"
+import type { SaveRecipeRequest, EditRecipeRequest, PresignedImageUpload } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
 type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
@@ -69,7 +69,7 @@ export const deleteRecipeImageAction = async (imageUrlOrKey: string): Promise<vo
     })
 }
 
-export const addRecipeAction = async (payload: AddRecipePayload): Promise<ActionResult> => {
+export const addRecipeAction = async (payload: SaveRecipeRequest): Promise<ActionResult> => {
   console.log("Saving new recipe:", payload.name)
   try {
     const result = await addRecipe(payload)
@@ -93,7 +93,7 @@ export const addRecipeAction = async (payload: AddRecipePayload): Promise<Action
 
 export const updateRecipeAction = async (
   id: number,
-  payload: AddRecipePayload,
+  payload: EditRecipeRequest,
 ): Promise<ActionResult> => {
   console.log("Updating recipe:", id, payload.name)
   try {

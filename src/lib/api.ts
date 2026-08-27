@@ -1,7 +1,8 @@
 import type {
   ApiResponse,
   Recipe,
-  AddRecipePayload,
+  SaveRecipeRequest,
+  EditRecipeRequest,
   RecipeSearchResult,
   Cuisine,
   Ingredient,
@@ -74,9 +75,9 @@ async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   return body.data
 }
 
-export const addRecipe = (payload: AddRecipePayload) => apiPost<Recipe>("/recipes", payload)
+export const addRecipe = (payload: SaveRecipeRequest) => apiPost<Recipe>("/recipes", payload)
 
-export const updateRecipe = (id: number | string, payload: AddRecipePayload) =>
+export const updateRecipe = (id: number | string, payload: EditRecipeRequest) =>
   apiPatch<Recipe>(`/recipes/${id}`, payload)
 
 export const updateRecipeImage = (id: number | string, imageUrl: string | null) =>

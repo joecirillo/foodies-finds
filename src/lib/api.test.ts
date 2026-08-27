@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { AddRecipePayload } from "@/types/recipe"
+import type { SaveRecipeRequest } from "@/types/recipe"
 import { addRecipe, getRecipe, presignRecipeImageUpload, deleteRecipeImage } from "./api"
 
 const mockFetch = vi.fn()
@@ -17,7 +17,7 @@ describe("addRecipe", () => {
       json: () => Promise.resolve({ data: recipe }),
     })
 
-    const result = await addRecipe({ name: "Pasta" } as AddRecipePayload)
+    const result = await addRecipe({ name: "Pasta" } as SaveRecipeRequest)
     expect(result).toEqual(recipe)
   })
 
@@ -28,7 +28,7 @@ describe("addRecipe", () => {
       json: () => Promise.resolve({ message: "Ingredient not found" }),
     })
 
-    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
+    await expect(addRecipe({ name: "Bad" } as SaveRecipeRequest)).rejects.toMatchObject({
       message: "Ingredient not found",
       code: "400",
     })
@@ -41,7 +41,7 @@ describe("addRecipe", () => {
       json: () => Promise.resolve({}),
     })
 
-    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
+    await expect(addRecipe({ name: "Bad" } as SaveRecipeRequest)).rejects.toMatchObject({
       message: "API 400",
       code: "400",
     })
@@ -54,7 +54,7 @@ describe("addRecipe", () => {
       json: () => Promise.reject(new Error("not json")),
     })
 
-    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toMatchObject({
+    await expect(addRecipe({ name: "Bad" } as SaveRecipeRequest)).rejects.toMatchObject({
       message: "API 500",
       code: "500",
     })
@@ -63,7 +63,7 @@ describe("addRecipe", () => {
   it("propagates network failures", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
-    await expect(addRecipe({ name: "Bad" } as AddRecipePayload)).rejects.toThrow("Network error")
+    await expect(addRecipe({ name: "Bad" } as SaveRecipeRequest)).rejects.toThrow("Network error")
   })
 })
 

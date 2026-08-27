@@ -55,7 +55,7 @@ export type Unit = {
   abbreviation: string
 }
 
-export type AddIngredientInput = {
+export type RecipeIngredientInput = {
   id: null
   name: string
   unitId: number | null
@@ -63,7 +63,7 @@ export type AddIngredientInput = {
   notes: string | null
 }
 
-export type AddStepInput = {
+export type RecipeStepInput = {
   stepNumber: number
   description: string
   tip: string | null
@@ -85,7 +85,9 @@ export type StepRow = {
   tip: string
 }
 
-export type AddRecipePayload = {
+// Sent on create (POST /recipes) — every field is required by the form, since a new
+// recipe has no prior state to fall back on.
+export type SaveRecipeRequest = {
   name: string
   description: string | null
   calories: number | null
@@ -95,10 +97,14 @@ export type AddRecipePayload = {
   cuisine: { id: number | null; name: string } | null
   tags: { id: number | null; name: string }[]
   author: string | null
-  ingredients: AddIngredientInput[]
-  steps: AddStepInput[]
+  ingredients: RecipeIngredientInput[]
+  steps: RecipeStepInput[]
   imageUrl: string | null
 }
+
+// Sent on update (PATCH /recipes/:id) — only fields that actually changed are included;
+// omitted keys are left untouched by the API, per its partial-update semantics.
+export type EditRecipeRequest = Partial<SaveRecipeRequest>
 
 export type Recipe = {
   id: number | null
