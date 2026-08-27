@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { SaveRecipeRequest } from "@/types/recipe"
-import { addRecipe, getRecipe, presignRecipeImageUpload, deleteRecipeImage } from "./api"
+import type { EditRecipeRequest, SaveRecipeRequest } from "@/types/recipe"
+import { addRecipe, getRecipe, updateRecipe, presignRecipeImageUpload, deleteRecipeImage } from "./api"
 
 const mockFetch = vi.fn()
 vi.stubGlobal("fetch", mockFetch)
@@ -64,6 +64,72 @@ describe("addRecipe", () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
     await expect(addRecipe({ name: "Bad" } as SaveRecipeRequest)).rejects.toThrow("Network error")
+  })
+})
+
+describe("updateRecipe", () => {
+  it("returns parsed response body on success", async () => {
+    const recipe = { id: 42, name: "Pasta" }
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: recipe }),
+    })
+
+    const result = await updateRecipe(42, { name: "Pasta" } as EditRecipeRequest)
+    expect(result).toEqual(recipe)
+  })
+
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Ingredient not found" }),
+    })
+
+    await expect(
+      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
+    ).rejects.toMatchObject({
+      message: "Ingredient not found",
+      code: "400",
+    })
+  })
+
+  it("throws Error with status code when the body has no message", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({}),
+    })
+
+    await expect(
+      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
+    ).rejects.toMatchObject({
+      message: "API 400",
+      code: "400",
+    })
+  })
+
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new Error("not json")),
+    })
+
+    await expect(
+      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
+    ).rejects.toMatchObject({
+      message: "API 500",
+      code: "500",
+    })
+  })
+
+  it("propagates network failures", async () => {
+    mockFetch.mockRejectedValueOnce(new Error("Network error"))
+
+    await expect(
+      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
+    ).rejects.toThrow("Network error")
   })
 })
 
