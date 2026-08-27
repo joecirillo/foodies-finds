@@ -162,6 +162,49 @@ describe("RecipeForm", () => {
     })
   })
 
+  describe("text normalization", () => {
+    it("title-cases the recipe name and ingredient names in the submitted payload", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url: string) => {
+          if (url === "/api/units") {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve([{ id: 1, name: "gram", abbreviation: "g" }]),
+            })
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        }),
+      )
+
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+
+      await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
+      const spinbuttons = screen.getAllByRole("spinbutton")
+      await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "spaghetti bolognese")
+      await user.type(spinbuttons[0], "10")
+      await user.type(spinbuttons[2], "2")
+      await user.type(screen.getByPlaceholderText("Search cuisines…"), "Italian")
+      await user.keyboard("{Enter}")
+      await user.type(screen.getByPlaceholderText("Ingredient name"), "extra-virgin olive oil")
+      await user.selectOptions(container.querySelector("select")!, "1")
+      await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockAddRecipeAction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            name: "Spaghetti Bolognese",
+            ingredients: [expect.objectContaining({ name: "Extra-Virgin Olive Oil" })],
+          }),
+        )
+      })
+    })
+  })
+
   describe("image upload", () => {
     const PRESIGNED = {
       ok: true as const,
@@ -307,6 +350,15 @@ describe("RecipeForm", () => {
       expect(screen.queryByPlaceholderText("Search cuisines…")).not.toBeInTheDocument()
     })
 
+    it("title-cases a custom cuisine name", async () => {
+      const user = userEvent.setup()
+      render(<RecipeForm />)
+
+      await user.type(screen.getByPlaceholderText("Search cuisines…"), "tex-mex fusion")
+      await user.keyboard("{Enter}")
+
+      expect(screen.getByText("Tex-Mex Fusion")).toBeInTheDocument()
+    })
   })
 
   describe("step drag reordering", () => {

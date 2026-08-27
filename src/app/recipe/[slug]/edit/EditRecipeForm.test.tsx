@@ -216,7 +216,7 @@ describe("EditRecipeForm", () => {
             name: "Spaghetti Bolognese",
             preparationTime: 15,
             cookingTime: 30,
-            ingredients: [expect.objectContaining({ name: "spaghetti", quantity: 200 })],
+            ingredients: [expect.objectContaining({ name: "Spaghetti", quantity: 200 })],
             steps: [
               expect.objectContaining({
                 stepNumber: 1,
@@ -270,7 +270,7 @@ describe("EditRecipeForm", () => {
       expect(mockPush).not.toHaveBeenCalled()
     })
 
-    it("lowercases ingredient names in the submitted payload", async () => {
+    it("title-cases ingredient names in the submitted payload", async () => {
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
       const recipe: Recipe = {
@@ -278,7 +278,7 @@ describe("EditRecipeForm", () => {
         ingredients: [
           {
             id: 1,
-            name: "Spaghetti",
+            name: "extra-virgin olive oil",
             quantity: 200,
             notes: null,
             unitId: null,
@@ -295,7 +295,7 @@ describe("EditRecipeForm", () => {
         expect(mockUpdateRecipeAction).toHaveBeenCalledWith(
           1,
           expect.objectContaining({
-            ingredients: [expect.objectContaining({ name: "spaghetti" })],
+            ingredients: [expect.objectContaining({ name: "Extra-Virgin Olive Oil" })],
           }),
         )
       })

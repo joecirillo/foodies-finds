@@ -15,7 +15,7 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { putToPresignedUrl } from "@/lib/upload"
-import { toSentenceCase, lowerFirst } from "@/lib/utils/text"
+import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
@@ -293,7 +293,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     }
 
     const result = await updateRecipeAction(recipe.id as number, {
-      name: name.trim(),
+      name: toTitleCase(name.trim()),
       description: description.trim() || null,
       calories: calories ? parseInt(calories) : null,
       servings: servings ? parseInt(servings) : null,
@@ -306,7 +306,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         .filter((i) => i.name.trim() && i.quantity !== null && i.quantity > 0)
         .map((i) => ({
           id: null,
-          name: i.name.trim().toLowerCase(),
+          name: toTitleCase(i.name.trim()),
           unitId: i.unitId,
           quantity: i.quantity,
           notes: i.notes.trim() || null,

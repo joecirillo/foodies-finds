@@ -2,6 +2,7 @@
 
 import { Input } from "@/components/ui/input"
 import { useEntitySearch } from "@/hooks/useEntitySearch"
+import { toTitleCase } from "@/lib/utils/text"
 import type { EntityOption } from "@/types/recipe"
 import { Delete02Icon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -38,7 +39,7 @@ export const CuisinePicker = ({ selected, onSelect, onRemove, ariaInvalid }: Cui
   const hasExactMatch = results.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())
 
   const createCuisine = () => {
-    onSelect({ id: null, name: trimmed })
+    onSelect({ id: null, name: toTitleCase(trimmed) })
     setQuery("")
     setOpen(false)
   }

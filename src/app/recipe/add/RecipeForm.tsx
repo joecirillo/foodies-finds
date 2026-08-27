@@ -11,7 +11,7 @@ import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { putToPresignedUrl } from "@/lib/upload"
-import { lowerFirst, toSentenceCase } from "@/lib/utils/text"
+import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, IngredientRow, StepRow, Unit } from "@/types/recipe"
 import { ArrowLeft02Icon, Delete02Icon, DragDropVerticalIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -264,7 +264,7 @@ export const RecipeForm = () => {
     // The image is attached to the recipe by name/id, so the recipe must exist first —
     // upload happens as a follow-up step once addRecipeAction returns a real id.
     const result = await addRecipeAction({
-      name: name.trim(),
+      name: toTitleCase(name.trim()),
       description: description.trim() || null,
       calories: calories ? parseInt(calories) : null,
       servings: servings ? parseInt(servings) : null,
@@ -277,7 +277,7 @@ export const RecipeForm = () => {
         .filter((i) => i.name.trim() && i.quantity !== null && i.quantity > 0)
         .map((i) => ({
           id: null,
-          name: i.name.trim().toLowerCase(),
+          name: toTitleCase(i.name.trim()),
           unitId: i.unitId,
           quantity: i.quantity,
           notes: i.notes.trim() || null,
