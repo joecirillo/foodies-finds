@@ -4,7 +4,12 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
-import { ArrowLeft02Icon, PlusSignIcon, Delete02Icon, DragDropVerticalIcon } from "@hugeicons/core-free-icons"
+import {
+  ArrowLeft02Icon,
+  PlusSignIcon,
+  Delete02Icon,
+  DragDropVerticalIcon,
+} from "@hugeicons/core-free-icons"
 import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
@@ -17,12 +22,28 @@ import {
 import { putToPresignedUrl } from "@/lib/upload"
 import { diffRecipeForUpdate } from "@/lib/recipe-diff"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
-import type { EntityOption, Recipe, SaveRecipeRequest, Unit, IngredientRow, StepRow } from "@/types/recipe"
+import type {
+  EntityOption,
+  Recipe,
+  SaveRecipeRequest,
+  Unit,
+  IngredientRow,
+  StepRow,
+} from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
 
-const SectionHeading = ({ children }: { children: React.ReactNode }) => (
-  <h2 className="font-heading text-lg font-semibold mb-3">{children}</h2>
+const SectionHeading = ({
+  children,
+  required,
+}: {
+  children: React.ReactNode
+  required?: boolean
+}) => (
+  <h2 className="font-heading text-lg font-semibold mb-3">
+    {children}
+    {required && <span className="text-destructive ml-0.5">*</span>}
+  </h2>
 )
 
 const FieldLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
@@ -243,6 +264,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     if (cookingTime !== "" && (isNaN(cookTime) || cookTime < 0))
       newErrors.cookingTime = "Cooking time must be 0 or more"
 
+    if (!selectedCuisine) newErrors.cuisine = "Cuisine is required"
+
     const validIngredients = ingredients.filter(
       (i) => i.name.trim() && i.quantity !== null && i.quantity > 0,
     )
@@ -296,7 +319,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     const nextPayload: SaveRecipeRequest = {
       name: toTitleCase(name.trim()),
       description: description.trim() || null,
-      calories: calories ? parseInt(calories) : null,
+      calories: calories ? parseInt(calories) : 0,
       servings: servings ? parseInt(servings) : null,
       cookingTime: cookingTime ? parseInt(cookingTime) : 0,
       preparationTime: parseInt(preparationTime),
@@ -448,9 +471,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           <SectionHeading>Image</SectionHeading>
           <FieldLabel>Photo</FieldLabel>
           {existingImageUrl && !imageFile && (
-            <p className="mb-2 text-xs text-muted-foreground truncate">
-              Current: {existingImageUrl}
-            </p>
+            <p className="mb-2 text-xs text-muted-foreground truncate">Current photo attached</p>
           )}
           <div className="flex items-center gap-3">
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
@@ -490,8 +511,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         </section>
 
         {/* Cuisine */}
-        <section>
-          <SectionHeading>Cuisine</SectionHeading>
+        <section id="field-cuisine">
+          <SectionHeading required>Cuisine</SectionHeading>
           <p className="mb-3 text-xs text-muted-foreground">
             {"Can't find yours? Type it and press Enter to add a custom cuisine."}
           </p>
@@ -499,7 +520,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
             selected={selectedCuisine}
             onSelect={setSelectedCuisine}
             onRemove={() => setSelectedCuisine(null)}
+            ariaInvalid={!!errors.cuisine}
           />
+          <FieldError message={errors.cuisine} />
         </section>
 
         {/* Tags */}
@@ -650,7 +673,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 className="flex gap-3"
                 data-step-index={index}
                 draggable
-                onDragStart={() => { dragIndex.current = index }}
+                onDragStart={() => {
+                  dragIndex.current = index
+                }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
                   if (dragIndex.current !== null && dragIndex.current !== index) {
