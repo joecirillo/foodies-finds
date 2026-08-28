@@ -8,26 +8,18 @@ import {
   presignRecipeImageUpload,
   deleteRecipeImage,
 } from "@/lib/api"
+import { ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR } from "@/lib/upload"
 import type { SaveRecipeRequest, EditRecipeRequest, PresignedImageUpload } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
 type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
-
-const ALLOWED_IMAGE_TYPES = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/heic",
-  "image/heif",
-])
 
 export const presignRecipeImageUploadAction = async (
   contentType: string,
   contentLength: number,
 ): Promise<PresignResult> => {
   if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
-    return { ok: false, error: "File must be jpeg, png, heic, webp, or gif" }
+    return { ok: false, error: IMAGE_TYPE_ERROR }
   }
   console.log("Requesting presigned upload URL:", "type:", contentType, "size:", contentLength)
 

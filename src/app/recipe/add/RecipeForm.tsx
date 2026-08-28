@@ -10,7 +10,7 @@ import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { putToPresignedUrl } from "@/lib/upload"
+import { ACCEPTED_IMAGE_TYPES, ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, IngredientRow, StepRow, Unit } from "@/types/recipe"
 import { ArrowLeft02Icon, Delete02Icon, DragDropVerticalIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
@@ -431,10 +431,17 @@ export const RecipeForm = () => {
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+                accept={ACCEPTED_IMAGE_TYPES}
                 className="sr-only"
                 onChange={(e) => {
-                  setImageFile(e.target.files?.[0])
+                  const file = e.target.files?.[0]
+                  if (file && !ALLOWED_IMAGE_TYPES.has(file.type)) {
+                    e.target.value = ""
+                    setImageFile(undefined)
+                    setErrors((prev) => ({ ...prev, image: IMAGE_TYPE_ERROR }))
+                    return
+                  }
+                  setImageFile(file)
                   setErrors((prev) => {
                     const next = { ...prev }
                     delete next.image

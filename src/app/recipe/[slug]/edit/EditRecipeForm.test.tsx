@@ -457,6 +457,30 @@ describe("EditRecipeForm", () => {
       await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
       expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
     })
+
+    it("rejects a HEIC file at selection and never presigns it", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      // userEvent.upload enforces the input's accept filter like a real OS picker would;
+      // fireEvent bypasses that to exercise the defense-in-depth check for pickers that don't.
+      const file = new File(["fake-heic"], "photo.heic", { type: "image/heic" })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      fireEvent.change(input, { target: { files: [file] } })
+
+      expect(
+        screen.getByText(
+          "File must be jpeg, png, webp, or gif. HEIC photos aren't supported — please choose a different format.",
+          { selector: "p" },
+        ),
+      ).toBeInTheDocument()
+
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
+      expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
+    })
   })
 
   describe("ingredients", () => {

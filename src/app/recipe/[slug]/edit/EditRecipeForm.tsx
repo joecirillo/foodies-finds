@@ -14,7 +14,7 @@ import {
   presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
-import { putToPresignedUrl } from "@/lib/upload"
+import { ACCEPTED_IMAGE_TYPES, ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR, putToPresignedUrl } from "@/lib/upload"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
@@ -450,10 +450,17 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+                accept={ACCEPTED_IMAGE_TYPES}
                 className="sr-only"
                 onChange={(e) => {
-                  setImageFile(e.target.files?.[0])
+                  const file = e.target.files?.[0]
+                  if (file && !ALLOWED_IMAGE_TYPES.has(file.type)) {
+                    e.target.value = ""
+                    setImageFile(undefined)
+                    setErrors((prev) => ({ ...prev, image: IMAGE_TYPE_ERROR }))
+                    return
+                  }
+                  setImageFile(file)
                   setErrors((prev) => {
                     const next = { ...prev }
                     delete next.image
