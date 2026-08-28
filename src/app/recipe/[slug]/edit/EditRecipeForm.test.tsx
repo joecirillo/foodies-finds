@@ -47,7 +47,7 @@ const baseRecipe: Recipe = {
   ingredients: [
     {
       id: 1,
-      name: "spaghetti",
+      name: "Spaghetti",
       quantity: 200,
       notes: null,
       unitId: null,
@@ -120,7 +120,7 @@ describe("EditRecipeForm", () => {
     it("renders pre-populated ingredient rows", () => {
       render(<EditRecipeForm recipe={baseRecipe} />)
       expect(screen.getByText("Ingredient 1")).toBeInTheDocument()
-      expect(screen.getByDisplayValue("spaghetti")).toBeInTheDocument()
+      expect(screen.getByDisplayValue("Spaghetti")).toBeInTheDocument()
     })
 
     it("renders pre-populated step rows", () => {
@@ -202,7 +202,7 @@ describe("EditRecipeForm", () => {
   })
 
   describe("submission", () => {
-    it("calls updateRecipeAction with the recipe id and transformed payload", async () => {
+    it("sends an empty diff when nothing was changed", async () => {
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
@@ -210,22 +210,39 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
-        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(
-          1,
-          expect.objectContaining({
-            name: "Spaghetti Bolognese",
-            preparationTime: 15,
-            cookingTime: 30,
-            ingredients: [expect.objectContaining({ name: "Spaghetti", quantity: 200 })],
-            steps: [
-              expect.objectContaining({
-                stepNumber: 1,
-                description: "Boil the pasta",
-              }),
-            ],
-          }),
-        )
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, {})
       })
+    })
+
+    it("sends only the name field when only the name is changed", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const nameInput = screen.getByDisplayValue("Spaghetti Bolognese")
+      await user.clear(nameInput)
+      await user.type(nameInput, "Spaghetti Carbonara")
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, { name: "Spaghetti Carbonara" })
+      })
+    })
+
+    it("omits ingredients and steps from the diff when only an unrelated field changed", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const nameInput = screen.getByDisplayValue("Spaghetti Bolognese")
+      await user.clear(nameInput)
+      await user.type(nameInput, "Spaghetti Carbonara")
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
+      const [, payload] = mockUpdateRecipeAction.mock.calls[0]
+      expect(payload).not.toHaveProperty("ingredients")
+      expect(payload).not.toHaveProperty("steps")
     })
 
     it("redirects to the recipe page on success", async () => {
