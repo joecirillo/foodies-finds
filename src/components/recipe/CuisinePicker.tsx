@@ -14,8 +14,13 @@ type CuisinePickerProps = {
   ariaInvalid?: boolean
 }
 
-export const CuisinePicker = ({ selected, onSelect, onRemove, ariaInvalid }: CuisinePickerProps) => {
-  const { query, setQuery, results, open, setOpen } = useEntitySearch("/api/search/cuisines")
+export const CuisinePicker = ({
+  selected,
+  onSelect,
+  onRemove,
+  ariaInvalid,
+}: CuisinePickerProps) => {
+  const { query, setQuery, results, open, setOpen, error } = useEntitySearch("/api/search/cuisines")
 
   if (selected) {
     return (
@@ -59,6 +64,11 @@ export const CuisinePicker = ({ selected, onSelect, onRemove, ariaInvalid }: Cui
         placeholder="Search cuisines…"
         aria-invalid={ariaInvalid}
       />
+      {error && (
+        <p className="mt-1 text-xs text-destructive">
+          Couldn&apos;t search cuisines. You can still type a new one and press Enter.
+        </p>
+      )}
       {open && (results.length > 0 || trimmed) && (
         <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
           {results.map((c) => (
