@@ -21,17 +21,25 @@ vi.mock("@/app/actions/recipe", () => ({
   deleteRecipeImageAction: vi.fn(),
 }))
 
+vi.mock("heic-to", () => ({
+  isHeic: vi.fn(),
+  heicTo: vi.fn(),
+}))
+
 import { useRouter } from "next/navigation"
 import {
   updateRecipeAction,
   presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
+import { isHeic, heicTo } from "heic-to"
 
 const mockUseRouter = vi.mocked(useRouter)
 const mockUpdateRecipeAction = vi.mocked(updateRecipeAction)
 const mockPresignRecipeImageUploadAction = vi.mocked(presignRecipeImageUploadAction)
 const mockDeleteRecipeImageAction = vi.mocked(deleteRecipeImageAction)
+const mockIsHeic = vi.mocked(isHeic)
+const mockHeicTo = vi.mocked(heicTo)
 
 const baseRecipe: Recipe = {
   id: 1,
@@ -80,6 +88,8 @@ beforeEach(() => {
   mockUpdateRecipeAction.mockReset()
   mockPresignRecipeImageUploadAction.mockReset()
   mockDeleteRecipeImageAction.mockReset()
+  mockIsHeic.mockReset().mockResolvedValue(false)
+  mockHeicTo.mockReset()
 
   vi.stubGlobal(
     "fetch",
@@ -458,22 +468,73 @@ describe("EditRecipeForm", () => {
       expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
     })
 
-    it("rejects a HEIC file at selection and never presigns it", async () => {
+    it("converts a HEIC photo to JPEG at selection and uploads the converted file", async () => {
+      stubFetch(true)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      mockIsHeic.mockResolvedValueOnce(true)
+      const convertedBlob = new Blob(["converted-jpeg"], { type: "image/jpeg" })
+      mockHeicTo.mockResolvedValueOnce(convertedBlob)
+
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
       // userEvent.upload enforces the input's accept filter like a real OS picker would;
-      // fireEvent bypasses that to exercise the defense-in-depth check for pickers that don't.
+      // fireEvent bypasses that so the test isn't coupled to that filtering.
+      const file = new File(["fake-heic"], "photo.heic", { type: "image/heic" })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      fireEvent.change(input, { target: { files: [file] } })
+
+      await waitFor(() => {
+        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+      })
+
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
+          "image/jpeg",
+          convertedBlob.size,
+        )
+      })
+    })
+
+    it("shows an error and never presigns when HEIC conversion fails", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      mockIsHeic.mockResolvedValueOnce(true)
+      mockHeicTo.mockRejectedValueOnce(new Error("decode failed"))
+
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
       const file = new File(["fake-heic"], "photo.heic", { type: "image/heic" })
       const input = document.querySelector('input[type="file"]') as HTMLInputElement
       fireEvent.change(input, { target: { files: [file] } })
 
       expect(
-        screen.getByText(
-          "File must be jpeg, png, webp, or gif. HEIC photos aren't supported — please choose a different format.",
+        await screen.findByText(
+          "Couldn't process that photo — please try a different one.",
           { selector: "p" },
         ),
+      ).toBeInTheDocument()
+
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
+      expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
+    })
+
+    it("rejects an unsupported file type at selection and never presigns it", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const file = new File(["fake-pdf"], "recipe.pdf", { type: "application/pdf" })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      fireEvent.change(input, { target: { files: [file] } })
+
+      expect(
+        await screen.findByText("File must be a jpeg, png, webp, or gif photo.", { selector: "p" }),
       ).toBeInTheDocument()
 
       await user.click(screen.getAllByText("Save Changes")[0])

@@ -14,7 +14,7 @@ import {
   presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
-import { ACCEPTED_IMAGE_TYPES, ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR, putToPresignedUrl } from "@/lib/upload"
+import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, Recipe, Unit, IngredientRow, StepRow } from "@/types/recipe"
 
@@ -48,6 +48,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const [description, setDescription] = useState(recipe.description ?? "")
   const [author, setAuthor] = useState(recipe.author ?? "")
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
   const existingImageUrl = recipe.imageUrl ?? null
   const [preparationTime, setPreparationTime] = useState(
     recipe.preparationTime > 0 ? String(recipe.preparationTime) : "",
@@ -349,7 +350,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
         <span className="font-heading text-base font-semibold">Edit Recipe</span>
-        <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="gap-1.5">
+        <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} size="sm" className="gap-1.5">
           {isSubmitting ? "Saving…" : "Save Changes"}
         </Button>
       </div>
@@ -452,15 +453,22 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 type="file"
                 accept={ACCEPTED_IMAGE_TYPES}
                 className="sr-only"
-                onChange={(e) => {
+                disabled={isProcessingImage}
+                onChange={async (e) => {
                   const file = e.target.files?.[0]
-                  if (file && !ALLOWED_IMAGE_TYPES.has(file.type)) {
-                    e.target.value = ""
+                  e.target.value = ""
+                  if (!file) return
+
+                  setIsProcessingImage(true)
+                  const result = await prepareImageFile(file)
+                  setIsProcessingImage(false)
+
+                  if ("error" in result) {
                     setImageFile(undefined)
-                    setErrors((prev) => ({ ...prev, image: IMAGE_TYPE_ERROR }))
+                    setErrors((prev) => ({ ...prev, image: result.error }))
                     return
                   }
-                  setImageFile(file)
+                  setImageFile(result.file)
                   setErrors((prev) => {
                     const next = { ...prev }
                     delete next.image
@@ -468,7 +476,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                   })
                 }}
               />
-              {imageFile ? (
+              {isProcessingImage ? (
+                "Converting photo…"
+              ) : imageFile ? (
                 <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
               ) : existingImageUrl ? (
                 "Tap to replace photo…"
@@ -727,7 +737,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
               {submitError}
             </div>
           )}
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
+          <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} className="w-full" size="lg">
             {isSubmitting ? "Saving…" : "Save Changes"}
           </Button>
         </div>

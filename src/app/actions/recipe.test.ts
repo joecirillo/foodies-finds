@@ -195,16 +195,16 @@ describe("presignRecipeImageUploadAction", () => {
     const result = await presignRecipeImageUploadAction("application/pdf", 1024)
     expect(result).toEqual({
       ok: false,
-      error: "File must be jpeg, png, webp, or gif. HEIC photos aren't supported — please choose a different format.",
+      error: "File must be a jpeg, png, webp, or gif photo.",
     })
     expect(mockPresignRecipeImageUpload).not.toHaveBeenCalled()
   })
 
-  it("rejects image/heic since browsers other than Safari can't render it", async () => {
+  it("rejects raw image/heic as a defense-in-depth backstop (the client converts HEIC to JPEG before calling this)", async () => {
     const result = await presignRecipeImageUploadAction("image/heic", 1024)
     expect(result).toEqual({
       ok: false,
-      error: "File must be jpeg, png, webp, or gif. HEIC photos aren't supported — please choose a different format.",
+      error: "File must be a jpeg, png, webp, or gif photo.",
     })
     expect(mockPresignRecipeImageUpload).not.toHaveBeenCalled()
   })
