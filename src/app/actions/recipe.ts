@@ -87,21 +87,22 @@ export const updateRecipeAction = async (
   id: number,
   payload: EditRecipeRequest,
 ): Promise<ActionResult> => {
-  console.log("Updating recipe:", id, payload.name)
+  const changedFields = Object.keys(payload)
+  console.log("Updating recipe:", id, "fields:", changedFields)
   try {
     const result = await updateRecipe(id, payload)
     const resultId = result?.id
     if (!resultId) {
-      console.error("Recipe update returned no ID:", id, payload.name)
+      console.error("Recipe update returned no ID:", id, "fields:", changedFields)
       return { ok: false, error: "Recipe was updated but no ID was returned" }
     }
-    console.log("Recipe updated:", resultId, payload.name)
+    console.log("Recipe updated:", resultId, "fields:", changedFields)
     revalidatePath(`/recipe/${resultId}`)
     return { ok: true, id: resultId }
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code
     const message = err instanceof Error ? err.message : "Failed to update recipe"
-    console.error("Failed to update recipe:", id, payload.name, "code:", code, message)
+    console.error("Failed to update recipe:", id, "fields:", changedFields, "code:", code, message)
     if (code === "500") {
       return { ok: false, error: "Something went wrong on our end. Please try again." }
     }

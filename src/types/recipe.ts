@@ -90,7 +90,7 @@ export type StepRow = {
 export type SaveRecipeRequest = {
   name: string
   description: string | null
-  calories: number | null
+  calories: number
   servings: number | null
   cookingTime: number
   preparationTime: number

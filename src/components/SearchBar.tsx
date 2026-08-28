@@ -11,11 +11,11 @@ type SearchBarProps = {
 }
 
 export const SearchBar = ({ className, placeholder = "Search for recipes..." }: SearchBarProps) => {
-  const { query, setQuery, results, loading } = useRecipeSearch()
+  const { query, setQuery, results, loading, error } = useRecipeSearch()
   const containerRef = useRef<HTMLDivElement>(null)
   const hasResults = results.length > 0
-  const showDropdown = query.length >= 2 && (loading || hasResults)
-  const showEmpty = query.length >= 2 && !loading && !hasResults
+  const showDropdown = query.length >= 2 && (loading || hasResults || !!error)
+  const showEmpty = query.length >= 2 && !loading && !hasResults && !error
 
   useEffect(() => {
     const handleMouseDown = (e: MouseEvent) => {
@@ -44,6 +44,11 @@ export const SearchBar = ({ className, placeholder = "Search for recipes..." }: 
         <div className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-md border border-border bg-background text-foreground shadow-lg">
           {loading && !hasResults && (
             <div className="px-4 py-3 text-sm text-muted-foreground">Searching…</div>
+          )}
+          {error && (
+            <div className="px-4 py-3 text-sm text-destructive">
+              Search failed. Please try again.
+            </div>
           )}
           {showEmpty && (
             <div className="px-4 py-3 text-sm text-muted-foreground">No recipes found</div>

@@ -55,7 +55,7 @@ const baseRecipe: Recipe = {
   ingredients: [
     {
       id: 1,
-      name: "spaghetti",
+      name: "Spaghetti",
       quantity: 200,
       notes: null,
       unitId: null,
@@ -130,7 +130,7 @@ describe("EditRecipeForm", () => {
     it("renders pre-populated ingredient rows", () => {
       render(<EditRecipeForm recipe={baseRecipe} />)
       expect(screen.getByText("Ingredient 1")).toBeInTheDocument()
-      expect(screen.getByDisplayValue("spaghetti")).toBeInTheDocument()
+      expect(screen.getByDisplayValue("Spaghetti")).toBeInTheDocument()
     })
 
     it("renders pre-populated step rows", () => {
@@ -212,7 +212,7 @@ describe("EditRecipeForm", () => {
   })
 
   describe("submission", () => {
-    it("calls updateRecipeAction with the recipe id and transformed payload", async () => {
+    it("sends an empty diff when nothing was changed", async () => {
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
@@ -220,22 +220,39 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
-        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(
-          1,
-          expect.objectContaining({
-            name: "Spaghetti Bolognese",
-            preparationTime: 15,
-            cookingTime: 30,
-            ingredients: [expect.objectContaining({ name: "Spaghetti", quantity: 200 })],
-            steps: [
-              expect.objectContaining({
-                stepNumber: 1,
-                description: "Boil the pasta",
-              }),
-            ],
-          }),
-        )
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, {})
       })
+    })
+
+    it("sends only the name field when only the name is changed", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const nameInput = screen.getByDisplayValue("Spaghetti Bolognese")
+      await user.clear(nameInput)
+      await user.type(nameInput, "Spaghetti Carbonara")
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, { name: "Spaghetti Carbonara" })
+      })
+    })
+
+    it("omits ingredients and steps from the diff when only an unrelated field changed", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const nameInput = screen.getByDisplayValue("Spaghetti Bolognese")
+      await user.clear(nameInput)
+      await user.type(nameInput, "Spaghetti Carbonara")
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
+      const [, payload] = mockUpdateRecipeAction.mock.calls[0]
+      expect(payload).not.toHaveProperty("ingredients")
+      expect(payload).not.toHaveProperty("steps")
     })
 
     it("redirects to the recipe page on success", async () => {
@@ -311,6 +328,19 @@ describe("EditRecipeForm", () => {
       })
     })
 
+    it("sends 0 for calories when the field is cleared", async () => {
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await user.clear(screen.getByDisplayValue("600"))
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, { calories: 0 })
+      })
+    })
+
     it("applies sentence case to step descriptions in the submitted payload", async () => {
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
@@ -359,6 +389,15 @@ describe("EditRecipeForm", () => {
       await user.upload(input, file)
     }
 
+    it("shows a current-photo label without leaking the CDN url", () => {
+      const imageUrl = "https://cdn.foodiesfinds.com/recipes/existing-123.jpg"
+      render(<EditRecipeForm recipe={{ ...baseRecipe, imageUrl }} />)
+
+      expect(screen.getByText("Current photo attached")).toBeInTheDocument()
+      expect(screen.queryByText(imageUrl)).not.toBeInTheDocument()
+      expect(document.body.textContent).not.toContain(imageUrl)
+    })
+
     it("presigns and uploads to R2 before submitting the new image key", async () => {
       stubFetch(true)
       mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
@@ -370,7 +409,10 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
-        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith("image/jpeg", expect.any(Number))
+        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
+          "image/jpeg",
+          expect.any(Number),
+        )
       })
       await waitFor(() => {
         expect(mockUpdateRecipeAction).toHaveBeenCalledWith(
@@ -646,7 +688,9 @@ describe("EditRecipeForm", () => {
       fireEvent.dragOver(stepRows[1])
       fireEvent.drop(stepRows[1])
 
-      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      const textareas = screen.getAllByPlaceholderText(
+        "Describe this step…",
+      ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Add the sauce")
       expect(textareas[1].value).toBe("Boil the pasta")
     })
@@ -670,12 +714,20 @@ describe("EditRecipeForm", () => {
 
       const handle = screen.getAllByLabelText("Drag to reorder step")[0]
       fireEvent(handle, new TouchEvent("touchstart", { bubbles: true }))
-      fireEvent(handle, new TouchEvent("touchmove", { bubbles: true, touches: [{ clientX: 0, clientY: 100 } as Touch] }))
+      fireEvent(
+        handle,
+        new TouchEvent("touchmove", {
+          bubbles: true,
+          touches: [{ clientX: 0, clientY: 100 } as Touch],
+        }),
+      )
       fireEvent(handle, new TouchEvent("touchend", { bubbles: true }))
 
       Object.defineProperty(document, "elementFromPoint", { value: undefined, configurable: true })
 
-      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      const textareas = screen.getAllByPlaceholderText(
+        "Describe this step…",
+      ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Add the sauce")
       expect(textareas[1].value).toBe("Boil the pasta")
     })
@@ -698,7 +750,9 @@ describe("EditRecipeForm", () => {
       fireEvent.dragOver(stepRows[0])
       fireEvent.drop(stepRows[0])
 
-      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      const textareas = screen.getAllByPlaceholderText(
+        "Describe this step…",
+      ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Boil the pasta")
       expect(textareas[1].value).toBe("Add the sauce")
     })
@@ -731,6 +785,17 @@ describe("EditRecipeForm", () => {
 
       expect(screen.getByText("Guyanese")).toBeInTheDocument()
       expect(screen.queryByPlaceholderText("Search cuisines…")).not.toBeInTheDocument()
+    })
+
+    it("shows error when cuisine is removed and the form is submitted", async () => {
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await user.click(screen.getByLabelText("Remove cuisine"))
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      expect(screen.getByText("Cuisine is required", { selector: "li" })).toBeInTheDocument()
+      expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
     })
   })
 

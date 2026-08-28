@@ -13,7 +13,12 @@ import { Input } from "@/components/ui/input"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, IngredientRow, StepRow, Unit } from "@/types/recipe"
-import { ArrowLeft02Icon, Delete02Icon, DragDropVerticalIcon, PlusSignIcon } from "@hugeicons/core-free-icons"
+import {
+  ArrowLeft02Icon,
+  Delete02Icon,
+  DragDropVerticalIcon,
+  PlusSignIcon,
+} from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -267,7 +272,7 @@ export const RecipeForm = () => {
     const result = await addRecipeAction({
       name: toTitleCase(name.trim()),
       description: description.trim() || null,
-      calories: calories ? parseInt(calories) : null,
+      calories: calories ? parseInt(calories) : 0,
       servings: servings ? parseInt(servings) : null,
       cookingTime: cookingTime ? parseInt(cookingTime) : 0,
       preparationTime: parseInt(preparationTime),
@@ -643,7 +648,9 @@ export const RecipeForm = () => {
                 className="flex gap-3"
                 data-step-index={index}
                 draggable
-                onDragStart={() => { dragIndex.current = index }}
+                onDragStart={() => {
+                  dragIndex.current = index
+                }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
                   if (dragIndex.current !== null && dragIndex.current !== index) {

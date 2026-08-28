@@ -15,7 +15,7 @@ type TagPickerProps = {
 const normalizeTagName = (name: string) => name.trim().replace(/\s+/g, "-")
 
 export const TagPicker = ({ selected, onAdd, onRemove }: TagPickerProps) => {
-  const { query, setQuery, results, open, setOpen } = useEntitySearch("/api/search/tags")
+  const { query, setQuery, results, open, setOpen, error } = useEntitySearch("/api/search/tags")
 
   const isSelected = (name: string) =>
     selected.some((t) => t.name.toLowerCase() === name.toLowerCase())
@@ -67,6 +67,11 @@ export const TagPicker = ({ selected, onAdd, onRemove }: TagPickerProps) => {
           }}
           placeholder="Search tags…"
         />
+        {error && (
+          <p className="mt-1 text-xs text-destructive">
+            Couldn&apos;t search tags. You can still type a new one and press Enter.
+          </p>
+        )}
         {open && (visibleResults.length > 0 || trimmed) && (
           <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
             {visibleResults.map((t) => (

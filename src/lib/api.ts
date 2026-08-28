@@ -11,6 +11,17 @@ import type {
   PresignedImageUpload,
 } from "@/types/recipe"
 
+// Backend errors use the envelope `{ message, status, ... }` (see recipe-api's
+// ErrorResponse). Falls back to a status-only message when the body isn't JSON or
+// has no `message`, so callers never see a raw parse error in its place.
+async function apiError(res: Response): Promise<Error> {
+  const body = await res.json().catch(() => null)
+  const message = body?.message ?? `API ${res.status}`
+  const err = new Error(message)
+  ;(err as NodeJS.ErrnoException).code = String(res.status)
+  return err
+}
+
 async function apiFetch<T>(path: string, revalidate: number | false = 60): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
     headers: {
@@ -19,11 +30,7 @@ async function apiFetch<T>(path: string, revalidate: number | false = 60): Promi
     next: { revalidate },
   })
 
-  if (!res.ok) {
-    const err = new Error(`API ${res.status}`)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
-  }
+  if (!res.ok) throw await apiError(res)
 
   const body: ApiResponse<T> = await res.json()
   return body.data
@@ -39,13 +46,7 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
     body: JSON.stringify(payload),
   })
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => null)
-    const message = body?.message ?? `API ${res.status}`
-    const err = new Error(message)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
-  }
+  if (!res.ok) throw await apiError(res)
 
   const body: ApiResponse<T> = await res.json()
   return body.data
@@ -65,11 +66,7 @@ async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
     body: JSON.stringify(payload),
   })
 
-  if (!res.ok) {
-    const err = new Error(`API ${res.status}`)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
-  }
+  if (!res.ok) throw await apiError(res)
 
   const body: ApiResponse<T> = await res.json()
   return body.data
@@ -85,11 +82,7 @@ export const updateRecipeImage = (id: number | string, imageUrl: string | null) 
 
 export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]> => {
   const res = await fetch(`/api/search/recipes?name=${encodeURIComponent(name)}`)
-  if (!res.ok) {
-    const err = new Error(`API ${res.status}`)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
-  }
+  if (!res.ok) throw await apiError(res)
   return res.json()
 }
 
@@ -125,11 +118,7 @@ export const deleteRecipeImage = async (imageUrlOrKey: string): Promise<void> =>
     headers: { "x-api-key": process.env.API_KEY ?? "" },
   })
 
-  if (!res.ok) {
-    const err = new Error(`API ${res.status}`)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
-  }
+  if (!res.ok) throw await apiError(res)
 }
 
 export const filterRecipes = async (params: {
@@ -149,11 +138,7 @@ export const filterRecipes = async (params: {
     cache: "no-store",
   })
 
-  if (!res.ok) {
-    const err = new Error(`API ${res.status}`)
-    ;(err as NodeJS.ErrnoException).code = String(res.status)
-    throw err
-  }
+  if (!res.ok) throw await apiError(res)
 
   const body: ApiResponse<RecipeSearchResult[]> = await res.json()
   return body.data

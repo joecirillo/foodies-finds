@@ -126,9 +126,7 @@ describe("RecipeForm", () => {
       await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
       await user.click(screen.getAllByText("Save Recipe")[0])
 
-      expect(
-        screen.getByText("Unit is required for flour", { selector: "p" }),
-      ).toBeInTheDocument()
+      expect(screen.getByText("Unit is required for flour", { selector: "p" })).toBeInTheDocument()
     })
 
     it("does not call addRecipeAction when validation fails", async () => {
@@ -168,6 +166,35 @@ describe("RecipeForm", () => {
         expect(mockAddRecipeAction).toHaveBeenCalledWith(
           expect.objectContaining({ author: "Anonymous" }),
         )
+      })
+    })
+  })
+
+  describe("calories default", () => {
+    it("submits 0 as calories when the calories field is left empty", async () => {
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockImplementation((url: string) => {
+          if (url === "/api/units") {
+            return Promise.resolve({
+              ok: true,
+              json: () => Promise.resolve([{ id: 1, name: "gram", abbreviation: "g" }]),
+            })
+          }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve([]) })
+        }),
+      )
+
+      mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      const { container } = render(<RecipeForm />)
+
+      await fillRequiredFields(user, container)
+
+      await user.click(screen.getAllByText("Save Recipe")[0])
+
+      await waitFor(() => {
+        expect(mockAddRecipeAction).toHaveBeenCalledWith(expect.objectContaining({ calories: 0 }))
       })
     })
   })
@@ -261,10 +288,15 @@ describe("RecipeForm", () => {
       await user.click(screen.getAllByText("Save Recipe")[0])
 
       await waitFor(() => {
-        expect(mockAddRecipeAction).toHaveBeenCalledWith(expect.objectContaining({ imageUrl: null }))
+        expect(mockAddRecipeAction).toHaveBeenCalledWith(
+          expect.objectContaining({ imageUrl: null }),
+        )
       })
       await waitFor(() => {
-        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith("image/jpeg", expect.any(Number))
+        expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
+          "image/jpeg",
+          expect.any(Number),
+        )
       })
       await waitFor(() => {
         expect(mockAttachRecipeImageAction).toHaveBeenCalledWith(1, PRESIGNED.key)
@@ -475,7 +507,9 @@ describe("RecipeForm", () => {
       fireEvent.dragOver(stepRows[1])
       fireEvent.drop(stepRows[1])
 
-      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      const textareas = screen.getAllByPlaceholderText(
+        "Describe this step…",
+      ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Step two")
       expect(textareas[1].value).toBe("Step one")
     })
@@ -497,12 +531,20 @@ describe("RecipeForm", () => {
 
       const handle = screen.getAllByLabelText("Drag to reorder step")[0]
       fireEvent(handle, new TouchEvent("touchstart", { bubbles: true }))
-      fireEvent(handle, new TouchEvent("touchmove", { bubbles: true, touches: [{ clientX: 0, clientY: 100 } as Touch] }))
+      fireEvent(
+        handle,
+        new TouchEvent("touchmove", {
+          bubbles: true,
+          touches: [{ clientX: 0, clientY: 100 } as Touch],
+        }),
+      )
       fireEvent(handle, new TouchEvent("touchend", { bubbles: true }))
 
       Object.defineProperty(document, "elementFromPoint", { value: undefined, configurable: true })
 
-      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      const textareas = screen.getAllByPlaceholderText(
+        "Describe this step…",
+      ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Step two")
       expect(textareas[1].value).toBe("Step one")
     })
@@ -522,7 +564,9 @@ describe("RecipeForm", () => {
       fireEvent.dragOver(stepRows[0])
       fireEvent.drop(stepRows[0])
 
-      const textareas = screen.getAllByPlaceholderText("Describe this step…") as HTMLTextAreaElement[]
+      const textareas = screen.getAllByPlaceholderText(
+        "Describe this step…",
+      ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Step one")
     })
   })
@@ -549,6 +593,5 @@ describe("RecipeForm", () => {
 
       expect(screen.getAllByText("weeknight")).toHaveLength(1)
     })
-
   })
 })
