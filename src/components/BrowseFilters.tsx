@@ -61,6 +61,7 @@ const FilterPill = ({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
   const [results, setResults] = useState<FilterOption[]>([])
+  const [searchFailed, setSearchFailed] = useState(false)
 
   useEffect(() => {
     if (!open) return
@@ -68,9 +69,18 @@ const FilterPill = ({
     const delay = query === "" ? 0 : 300
     const timer = setTimeout(() => {
       fetch(`${ENDPOINTS[filterKey]}?query=${encodeURIComponent(query)}`)
-        .then((res) => (res.ok ? res.json() : []))
-        .then(setResults)
-        .catch(() => {})
+        .then((res) => {
+          if (!res.ok) throw new Error(`Search failed (${res.status})`)
+          return res.json()
+        })
+        .then((data) => {
+          setSearchFailed(false)
+          setResults(data)
+        })
+        .catch(() => {
+          setSearchFailed(true)
+          setResults([])
+        })
     }, delay)
     return () => clearTimeout(timer)
   }, [query, open, filterKey])
@@ -112,7 +122,9 @@ const FilterPill = ({
             onValueChange={setQuery}
           />
           <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
+            <CommandEmpty>
+              {searchFailed ? "Search failed. Please try again." : "No results found."}
+            </CommandEmpty>
             <CommandGroup>
               {results.map((item) => (
                 <CommandItem

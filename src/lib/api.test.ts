@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import type { EditRecipeRequest, SaveRecipeRequest } from "@/types/recipe"
-import { addRecipe, getRecipe, updateRecipe, presignRecipeImageUpload, deleteRecipeImage } from "./api"
+import {
+  addRecipe,
+  getRecipe,
+  updateRecipe,
+  presignRecipeImageUpload,
+  deleteRecipeImage,
+  listRecipes,
+  searchRecipes,
+  filterRecipes,
+} from "./api"
 
 const mockFetch = vi.fn()
 vi.stubGlobal("fetch", mockFetch)
@@ -86,9 +95,7 @@ describe("updateRecipe", () => {
       json: () => Promise.resolve({ message: "Ingredient not found" }),
     })
 
-    await expect(
-      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
-    ).rejects.toMatchObject({
+    await expect(updateRecipe(42, { name: "Bad" } as EditRecipeRequest)).rejects.toMatchObject({
       message: "Ingredient not found",
       code: "400",
     })
@@ -101,9 +108,7 @@ describe("updateRecipe", () => {
       json: () => Promise.resolve({}),
     })
 
-    await expect(
-      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
-    ).rejects.toMatchObject({
+    await expect(updateRecipe(42, { name: "Bad" } as EditRecipeRequest)).rejects.toMatchObject({
       message: "API 400",
       code: "400",
     })
@@ -116,9 +121,7 @@ describe("updateRecipe", () => {
       json: () => Promise.reject(new Error("not json")),
     })
 
-    await expect(
-      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
-    ).rejects.toMatchObject({
+    await expect(updateRecipe(42, { name: "Bad" } as EditRecipeRequest)).rejects.toMatchObject({
       message: "API 500",
       code: "500",
     })
@@ -127,15 +130,14 @@ describe("updateRecipe", () => {
   it("propagates network failures", async () => {
     mockFetch.mockRejectedValueOnce(new Error("Network error"))
 
-    await expect(
-      updateRecipe(42, { name: "Bad" } as EditRecipeRequest),
-    ).rejects.toThrow("Network error")
+    await expect(updateRecipe(42, { name: "Bad" } as EditRecipeRequest)).rejects.toThrow(
+      "Network error",
+    )
   })
 })
 
 describe("listRecipes", () => {
   it("unwraps body.data on success", async () => {
-    const { listRecipes } = await import("./api")
     const list = [
       { id: 1, name: "Pasta" },
       { id: 2, name: "Tacos" },
@@ -149,9 +151,25 @@ describe("listRecipes", () => {
     expect(result).toEqual(list)
   })
 
-  it("throws Error with status code on non-ok response", async () => {
-    const { listRecipes } = await import("./api")
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 500 })
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ message: "Database connection failed" }),
+    })
+
+    await expect(listRecipes()).rejects.toMatchObject({
+      message: "Database connection failed",
+      code: "500",
+    })
+  })
+
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new Error("not json")),
+    })
 
     await expect(listRecipes()).rejects.toMatchObject({
       message: "API 500",
@@ -172,8 +190,25 @@ describe("getRecipe", () => {
     expect(result).toEqual(recipe)
   })
 
-  it("throws Error with correct status code on non-ok response", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 404 })
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: "Recipe not found with id: 99" }),
+    })
+
+    await expect(getRecipe(99)).rejects.toMatchObject({
+      message: "Recipe not found with id: 99",
+      code: "404",
+    })
+  })
+
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: () => Promise.reject(new Error("not json")),
+    })
 
     await expect(getRecipe(99)).rejects.toMatchObject({
       message: "API 404",
@@ -235,12 +270,107 @@ describe("deleteRecipeImage", () => {
     )
   })
 
-  it("throws Error with status code on non-ok response", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: false, status: 400 })
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Invalid image key" }),
+    })
+
+    await expect(deleteRecipeImage("recipes/abc-123.jpg")).rejects.toMatchObject({
+      message: "Invalid image key",
+      code: "400",
+    })
+  })
+
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.reject(new Error("not json")),
+    })
 
     await expect(deleteRecipeImage("recipes/abc-123.jpg")).rejects.toMatchObject({
       message: "API 400",
       code: "400",
+    })
+  })
+})
+
+describe("searchRecipes", () => {
+  it("returns the parsed array on success", async () => {
+    const list = [{ id: 1, name: "Pasta" }]
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(list),
+    })
+
+    const result = await searchRecipes("pasta")
+    expect(result).toEqual(list)
+  })
+
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ message: "Search failed" }),
+    })
+
+    await expect(searchRecipes("pasta")).rejects.toMatchObject({
+      message: "Search failed",
+      code: "500",
+    })
+  })
+
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new Error("not json")),
+    })
+
+    await expect(searchRecipes("pasta")).rejects.toMatchObject({
+      message: "API 500",
+      code: "500",
+    })
+  })
+})
+
+describe("filterRecipes", () => {
+  it("unwraps body.data on success", async () => {
+    const list = [{ id: 1, name: "Pasta" }]
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: list }),
+    })
+
+    const result = await filterRecipes({ name: "pasta" })
+    expect(result).toEqual(list)
+  })
+
+  it("throws with the API error message when the body has a message field", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () => Promise.resolve({ message: "Invalid cuisineId" }),
+    })
+
+    await expect(filterRecipes({ cuisineId: -1 })).rejects.toMatchObject({
+      message: "Invalid cuisineId",
+      code: "400",
+    })
+  })
+
+  it("throws Error with status code when the body cannot be parsed", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.reject(new Error("not json")),
+    })
+
+    await expect(filterRecipes({ name: "pasta" })).rejects.toMatchObject({
+      message: "API 500",
+      code: "500",
     })
   })
 })

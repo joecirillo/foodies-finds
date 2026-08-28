@@ -14,6 +14,7 @@ afterEach(() => {
 
 function stubFetch(data: { id: number; name: string }[]) {
   const fetchMock = vi.fn().mockResolvedValue({
+    ok: true,
     json: () => Promise.resolve(data),
   })
   vi.stubGlobal("fetch", fetchMock)
@@ -81,5 +82,51 @@ describe("useEntitySearch", () => {
 
     expect(result.current.results).toEqual([])
     expect(result.current.open).toBe(false)
+  })
+
+  it("sets an error and clears results when the response is not ok", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 500 })
+    vi.stubGlobal("fetch", fetchMock)
+    const { result } = renderHook(() => useEntitySearch("/api/search/cuisines"))
+
+    act(() => result.current.setQuery("ita"))
+    await act(() => vi.runAllTimersAsync())
+
+    expect(result.current.results).toEqual([])
+    expect(result.current.error?.message).toBe("Search failed (500)")
+  })
+
+  it("sets an error when the fetch itself rejects", async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error("Network error"))
+    vi.stubGlobal("fetch", fetchMock)
+    const { result } = renderHook(() => useEntitySearch("/api/search/cuisines"))
+
+    act(() => result.current.setQuery("ita"))
+    await act(() => vi.runAllTimersAsync())
+
+    expect(result.current.results).toEqual([])
+    expect(result.current.error?.message).toBe("Network error")
+  })
+
+  it("clears a previous error on a subsequent successful search", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 500 })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve([{ id: 1, name: "Italian" }]),
+      })
+    vi.stubGlobal("fetch", fetchMock)
+    const { result } = renderHook(() => useEntitySearch("/api/search/cuisines"))
+
+    act(() => result.current.setQuery("ita"))
+    await act(() => vi.runAllTimersAsync())
+    expect(result.current.error).not.toBeNull()
+
+    act(() => result.current.setQuery("ital"))
+    await act(() => vi.runAllTimersAsync())
+
+    expect(result.current.error).toBeNull()
+    expect(result.current.results).toEqual([{ id: 1, name: "Italian" }])
   })
 })

@@ -62,6 +62,21 @@ describe("SearchBar", () => {
     expect(link).toHaveAttribute("href", "/recipe/42")
   })
 
+  it("shows an error message instead of 'No recipes found' when the search fails", () => {
+    mockUseRecipeSearch.mockReturnValue({
+      query: "pa",
+      setQuery: vi.fn(),
+      results: [],
+      loading: false,
+      error: new Error("API 500"),
+    })
+
+    render(<SearchBar />)
+
+    expect(screen.getByText("Search failed. Please try again.")).toBeInTheDocument()
+    expect(screen.queryByText("No recipes found")).not.toBeInTheDocument()
+  })
+
   it("hides dropdown when query is empty", () => {
     mockUseRecipeSearch.mockReturnValue({ ...defaultState, query: "", results: [] })
 
