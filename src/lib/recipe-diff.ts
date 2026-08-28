@@ -4,7 +4,7 @@ function toComparablePayload(recipe: Recipe): SaveRecipeRequest {
   return {
     name: recipe.name,
     description: recipe.description,
-    calories: recipe.calories,
+    calories: recipe.calories ?? 0,
     servings: recipe.servings,
     cookingTime: recipe.cookingTime,
     preparationTime: recipe.preparationTime,
