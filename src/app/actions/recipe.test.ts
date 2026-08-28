@@ -195,21 +195,18 @@ describe("presignRecipeImageUploadAction", () => {
     const result = await presignRecipeImageUploadAction("application/pdf", 1024)
     expect(result).toEqual({
       ok: false,
-      error: "File must be jpeg, png, heic, webp, or gif",
+      error: "File must be a jpeg, png, webp, or gif photo.",
     })
     expect(mockPresignRecipeImageUpload).not.toHaveBeenCalled()
   })
 
-  it("accepts image/heic", async () => {
-    const presigned: PresignedImageUpload = {
-      uploadUrl: "https://account.r2.cloudflarestorage.com/signed",
-      key: "recipes/abc-123.heic",
-      imageUrl: "https://cdn.foodiesfinds.com/recipes/abc-123.heic",
-    }
-    mockPresignRecipeImageUpload.mockResolvedValueOnce(presigned)
-
+  it("rejects raw image/heic as a defense-in-depth backstop (the client converts HEIC to JPEG before calling this)", async () => {
     const result = await presignRecipeImageUploadAction("image/heic", 1024)
-    expect(result).toEqual({ ok: true, ...presigned })
+    expect(result).toEqual({
+      ok: false,
+      error: "File must be a jpeg, png, webp, or gif photo.",
+    })
+    expect(mockPresignRecipeImageUpload).not.toHaveBeenCalled()
   })
 
   it("returns the API error message when presigning fails", async () => {

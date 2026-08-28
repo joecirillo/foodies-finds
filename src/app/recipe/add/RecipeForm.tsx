@@ -10,7 +10,7 @@ import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { putToPresignedUrl } from "@/lib/upload"
+import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, IngredientRow, StepRow, Unit } from "@/types/recipe"
 import {
@@ -63,6 +63,7 @@ export const RecipeForm = () => {
   const [description, setDescription] = useState("")
   const [author, setAuthor] = useState("")
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
   const [preparationTime, setPreparationTime] = useState("")
   const [cookingTime, setCookingTime] = useState("")
   const [servings, setServings] = useState("")
@@ -335,7 +336,7 @@ export const RecipeForm = () => {
         >
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting} size="sm" className="gap-1.5">
+        <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} size="sm" className="gap-1.5">
           {isSubmitting ? "Saving…" : "Save Recipe"}
         </Button>
       </div>
@@ -436,10 +437,24 @@ export const RecipeForm = () => {
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif"
+                accept={ACCEPTED_IMAGE_TYPES}
                 className="sr-only"
-                onChange={(e) => {
-                  setImageFile(e.target.files?.[0])
+                disabled={isProcessingImage}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0]
+                  e.target.value = ""
+                  if (!file) return
+
+                  setIsProcessingImage(true)
+                  const result = await prepareImageFile(file)
+                  setIsProcessingImage(false)
+
+                  if ("error" in result) {
+                    setImageFile(undefined)
+                    setErrors((prev) => ({ ...prev, image: result.error }))
+                    return
+                  }
+                  setImageFile(result.file)
                   setErrors((prev) => {
                     const next = { ...prev }
                     delete next.image
@@ -447,7 +462,9 @@ export const RecipeForm = () => {
                   })
                 }}
               />
-              {imageFile ? (
+              {isProcessingImage ? (
+                "Converting photo…"
+              ) : imageFile ? (
                 <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
               ) : (
                 "Tap to choose a photo…"
@@ -709,7 +726,7 @@ export const RecipeForm = () => {
               {submitError}
             </div>
           )}
-          <Button onClick={handleSubmit} disabled={isSubmitting} className="w-full" size="lg">
+          <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} className="w-full" size="lg">
             {isSubmitting ? "Saving…" : "Save Recipe"}
           </Button>
         </div>
