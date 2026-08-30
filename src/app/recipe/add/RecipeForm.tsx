@@ -17,6 +17,7 @@ import {
   ArrowLeft02Icon,
   Delete02Icon,
   DragDropVerticalIcon,
+  Loading03Icon,
   PlusSignIcon,
 } from "@hugeicons/core-free-icons"
 import { HugeiconsIcon } from "@hugeicons/react"
@@ -90,6 +91,13 @@ export const RecipeForm = () => {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const isSaveBusy = isSubmitting || isProcessingImage
+  const saveLabel = isSubmitting
+    ? "Saving…"
+    : isProcessingImage
+      ? "Converting photo…"
+      : "Save Recipe"
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
@@ -336,8 +344,9 @@ export const RecipeForm = () => {
         >
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
-        <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} size="sm" className="gap-1.5">
-          {isSubmitting ? "Saving…" : "Save Recipe"}
+        <Button onClick={handleSubmit} disabled={isSaveBusy} size="sm" className="gap-1.5">
+          {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
+          {saveLabel}
         </Button>
       </div>
 
@@ -726,8 +735,9 @@ export const RecipeForm = () => {
               {submitError}
             </div>
           )}
-          <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} className="w-full" size="lg">
-            {isSubmitting ? "Saving…" : "Save Recipe"}
+          <Button onClick={handleSubmit} disabled={isSaveBusy} className="w-full gap-1.5" size="lg">
+            {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
+            {saveLabel}
           </Button>
         </div>
       </div>

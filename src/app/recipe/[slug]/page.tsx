@@ -57,7 +57,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
         <Button
-          render={<Link href={`/recipe/${slug}/edit`} />}
+          render={<Link href={`/recipe/${slug}/edit`} prefetch={false} />}
           nativeButton={false}
           variant="outline"
           size="sm"
