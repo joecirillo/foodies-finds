@@ -20,6 +20,7 @@ import {
   presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
+import { useSaveButtonState } from "@/hooks/useSaveButtonState"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { diffRecipeForUpdate } from "@/lib/recipe-diff"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
@@ -128,12 +129,11 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const isSaveBusy = isSubmitting || isProcessingImage
-  const saveLabel = isSubmitting
-    ? "Saving…"
-    : isProcessingImage
-      ? "Converting photo…"
-      : "Save Changes"
+  const { isBusy: isSaveBusy, label: saveLabel } = useSaveButtonState({
+    isSubmitting,
+    isProcessingImage,
+    idleLabel: "Save Changes",
+  })
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 

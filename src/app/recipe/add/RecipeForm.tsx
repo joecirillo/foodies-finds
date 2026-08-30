@@ -10,6 +10,7 @@ import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { useSaveButtonState } from "@/hooks/useSaveButtonState"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
 import type { EntityOption, IngredientRow, StepRow, Unit } from "@/types/recipe"
@@ -92,12 +93,11 @@ export const RecipeForm = () => {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const isSaveBusy = isSubmitting || isProcessingImage
-  const saveLabel = isSubmitting
-    ? "Saving…"
-    : isProcessingImage
-      ? "Converting photo…"
-      : "Save Recipe"
+  const { isBusy: isSaveBusy, label: saveLabel } = useSaveButtonState({
+    isSubmitting,
+    isProcessingImage,
+    idleLabel: "Save Recipe",
+  })
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
