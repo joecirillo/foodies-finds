@@ -26,6 +26,10 @@ vi.mock("heic-to", () => ({
   heicTo: vi.fn(),
 }))
 
+vi.mock("browser-image-compression", () => ({
+  default: vi.fn(),
+}))
+
 import { useRouter } from "next/navigation"
 import {
   updateRecipeAction,
@@ -33,6 +37,7 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { isHeic, heicTo } from "heic-to"
+import imageCompression from "browser-image-compression"
 
 const mockUseRouter = vi.mocked(useRouter)
 const mockUpdateRecipeAction = vi.mocked(updateRecipeAction)
@@ -40,6 +45,7 @@ const mockPresignRecipeImageUploadAction = vi.mocked(presignRecipeImageUploadAct
 const mockDeleteRecipeImageAction = vi.mocked(deleteRecipeImageAction)
 const mockIsHeic = vi.mocked(isHeic)
 const mockHeicTo = vi.mocked(heicTo)
+const mockImageCompression = vi.mocked(imageCompression)
 
 const baseRecipe: Recipe = {
   id: 1,
@@ -90,6 +96,9 @@ beforeEach(() => {
   mockDeleteRecipeImageAction.mockReset()
   mockIsHeic.mockReset().mockResolvedValue(false)
   mockHeicTo.mockReset()
+  mockImageCompression
+    .mockReset()
+    .mockImplementation(async (file) => new Blob([file], { type: "image/webp" }))
 
   vi.stubGlobal(
     "fetch",
@@ -410,7 +419,7 @@ describe("EditRecipeForm", () => {
 
       await waitFor(() => {
         expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
-          "image/jpeg",
+          "image/webp",
           expect.any(Number),
         )
       })
@@ -528,14 +537,14 @@ describe("EditRecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       await waitFor(() => {
-        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+        expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
 
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
         expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
-          "image/jpeg",
+          "image/webp",
           convertedBlob.size,
         )
       })
@@ -858,7 +867,7 @@ describe("EditRecipeForm", () => {
       })
     })
 
-    it("shows a spinner and 'Converting photo…' on the save button while a HEIC photo is processing", async () => {
+    it("shows a spinner and 'Processing photo…' on the save button while a HEIC photo is processing", async () => {
       mockIsHeic.mockResolvedValueOnce(true)
       let resolveHeicTo: (value: Blob) => void = () => {}
       mockHeicTo.mockReturnValueOnce(
@@ -874,7 +883,7 @@ describe("EditRecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       const convertingButtons = await screen.findAllByRole("button", {
-        name: /Converting photo…/,
+        name: /Processing photo…/,
       })
       expect(convertingButtons).toHaveLength(2)
       for (const button of convertingButtons) {
@@ -884,7 +893,7 @@ describe("EditRecipeForm", () => {
 
       resolveHeicTo(new Blob(["converted-jpeg"], { type: "image/jpeg" }))
       await waitFor(() => {
-        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+        expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
     })
   })

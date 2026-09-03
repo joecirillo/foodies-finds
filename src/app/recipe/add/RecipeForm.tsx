@@ -472,7 +472,7 @@ export const RecipeForm = () => {
                 }}
               />
               {isProcessingImage ? (
-                "Converting photo…"
+                "Processing photo…"
               ) : imageFile ? (
                 <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
               ) : (

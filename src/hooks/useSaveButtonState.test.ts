@@ -28,7 +28,7 @@ describe("useSaveButtonState", () => {
     expect(result.current).toEqual({ isBusy: true, label: "Saving…" })
   })
 
-  it("shows 'Converting photo…' and is busy while processing an image", () => {
+  it("shows 'Processing photo…' and is busy while processing an image", () => {
     const { result } = renderHook(() =>
       useSaveButtonState({
         isSubmitting: false,
@@ -37,7 +37,7 @@ describe("useSaveButtonState", () => {
       }),
     )
 
-    expect(result.current).toEqual({ isBusy: true, label: "Converting photo…" })
+    expect(result.current).toEqual({ isBusy: true, label: "Processing photo…" })
   })
 
   it("prioritizes the 'Saving…' label when both submitting and processing an image are true", () => {
