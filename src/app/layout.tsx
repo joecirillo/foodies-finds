@@ -8,9 +8,25 @@ import { Footer } from "@/components/Footer"
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-sans" })
 const inter = Inter({ subsets: ["latin"], variable: "--font-secondary" })
 
+const title = "Foodies Finds"
+const description = "Track your favorite family recipes"
+
+// Next.js resolves relative og:image URLs against metadataBase, so without it
+// the emitted url falls back to localhost even in production.
+// VERCEL_PROJECT_PRODUCTION_URL is set automatically by Vercel at build time.
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : "http://localhost:3000"
+
 export const metadata: Metadata = {
-  title: "Foodies Finds",
-  description: "Track your favorite family recipes",
+  metadataBase: new URL(siteUrl),
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    images: ["/no-image.jpeg"],
+  },
 }
 
 export default function RootLayout({
