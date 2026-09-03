@@ -554,10 +554,9 @@ describe("EditRecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       expect(
-        await screen.findByText(
-          "Couldn't process that photo — please try a different one.",
-          { selector: "p" },
-        ),
+        await screen.findByText("Couldn't process that photo — please try a different one.", {
+          selector: "p",
+        }),
       ).toBeInTheDocument()
 
       await user.click(screen.getAllByText("Save Changes")[0])
@@ -829,6 +828,64 @@ describe("EditRecipeForm", () => {
       await user.keyboard("{Enter}")
 
       expect(screen.getAllByText("pasta")).toHaveLength(1)
+    })
+  })
+
+  describe("save button loading state", () => {
+    it("shows a spinner and disables the button while the recipe is saving", async () => {
+      let resolveUpdateRecipe: (value: { ok: true; id: number }) => void = () => {}
+      mockUpdateRecipeAction.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveUpdateRecipe = resolve
+        }),
+      )
+
+      const user = userEvent.setup()
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      const savingButtons = screen.getAllByRole("button", { name: /Saving…/ })
+      expect(savingButtons).toHaveLength(2)
+      for (const button of savingButtons) {
+        expect(button).toBeDisabled()
+        expect(button.querySelector(".animate-spin")).toBeInTheDocument()
+      }
+
+      resolveUpdateRecipe({ ok: true, id: 1 })
+      await waitFor(() => {
+        expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+      })
+    })
+
+    it("shows a spinner and 'Converting photo…' on the save button while a HEIC photo is processing", async () => {
+      mockIsHeic.mockResolvedValueOnce(true)
+      let resolveHeicTo: (value: Blob) => void = () => {}
+      mockHeicTo.mockReturnValueOnce(
+        new Promise((resolve) => {
+          resolveHeicTo = resolve
+        }),
+      )
+
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const file = new File(["fake-heic"], "photo.heic", { type: "image/heic" })
+      const input = document.querySelector('input[type="file"]') as HTMLInputElement
+      fireEvent.change(input, { target: { files: [file] } })
+
+      const convertingButtons = await screen.findAllByRole("button", {
+        name: /Converting photo…/,
+      })
+      expect(convertingButtons).toHaveLength(2)
+      for (const button of convertingButtons) {
+        expect(button).toBeDisabled()
+        expect(button.querySelector(".animate-spin")).toBeInTheDocument()
+      }
+
+      resolveHeicTo(new Blob(["converted-jpeg"], { type: "image/jpeg" }))
+      await waitFor(() => {
+        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+      })
     })
   })
 })

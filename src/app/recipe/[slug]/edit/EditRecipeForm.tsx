@@ -9,6 +9,7 @@ import {
   PlusSignIcon,
   Delete02Icon,
   DragDropVerticalIcon,
+  Loading03Icon,
 } from "@hugeicons/core-free-icons"
 import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
@@ -19,6 +20,7 @@ import {
   presignRecipeImageUploadAction,
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
+import { useSaveButtonState } from "@/hooks/useSaveButtonState"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { diffRecipeForUpdate } from "@/lib/recipe-diff"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
@@ -126,6 +128,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const { isBusy: isSaveBusy, label: saveLabel } = useSaveButtonState({
+    isSubmitting,
+    isProcessingImage,
+    idleLabel: "Save Changes",
+  })
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
@@ -379,8 +387,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
         <span className="font-heading text-base font-semibold">Edit Recipe</span>
-        <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} size="sm" className="gap-1.5">
-          {isSubmitting ? "Saving…" : "Save Changes"}
+        <Button onClick={handleSubmit} disabled={isSaveBusy} size="sm" className="gap-1.5">
+          {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
+          {saveLabel}
         </Button>
       </div>
 
@@ -768,8 +777,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
               {submitError}
             </div>
           )}
-          <Button onClick={handleSubmit} disabled={isSubmitting || isProcessingImage} className="w-full" size="lg">
-            {isSubmitting ? "Saving…" : "Save Changes"}
+          <Button onClick={handleSubmit} disabled={isSaveBusy} className="w-full gap-1.5" size="lg">
+            {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
+            {saveLabel}
           </Button>
         </div>
       </div>
