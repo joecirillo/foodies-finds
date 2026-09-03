@@ -13,6 +13,7 @@ import {
 } from "@hugeicons/core-free-icons"
 import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
+import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -643,22 +644,11 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                   </div>
                   <div>
                     <FieldLabel>Unit</FieldLabel>
-                    <select
-                      value={ingredient.unitId ?? ""}
-                      onChange={(e) =>
-                        updateIngredient(index, {
-                          unitId: e.target.value ? parseInt(e.target.value) : null,
-                        })
-                      }
-                      className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    >
-                      <option value="">—</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.abbreviation})
-                        </option>
-                      ))}
-                    </select>
+                    <UnitPicker
+                      units={units}
+                      value={ingredient.unitId}
+                      onChange={(unitId) => updateIngredient(index, { unitId })}
+                    />
                   </div>
                 </div>
                 <div>
