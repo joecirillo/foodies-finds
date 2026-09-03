@@ -34,7 +34,9 @@ export const UnitPicker = ({ units, value, onChange, ariaInvalid }: UnitPickerPr
           !selected && "text-muted-foreground",
         )}
       >
-        {selected ? `${selected.name} (${selected.abbreviation})` : "—"}
+        <span className="min-w-0 truncate block">
+          {selected ? `${selected.name} (${selected.abbreviation})` : "—"}
+        </span>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
         <Command>
