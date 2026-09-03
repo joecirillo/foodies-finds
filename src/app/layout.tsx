@@ -2,15 +2,25 @@ import type { Metadata } from "next"
 import { Nunito, Inter } from "next/font/google"
 import "./globals.css"
 import { cn } from "@/lib/utils"
+import { getSiteUrl } from "@/lib/site-url"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-sans" })
 const inter = Inter({ subsets: ["latin"], variable: "--font-secondary" })
 
+const title = "Foodies Finds"
+const description = "Track your favorite family recipes"
+
 export const metadata: Metadata = {
-  title: "Foodies Finds",
-  description: "Track your favorite family recipes",
+  metadataBase: new URL(getSiteUrl()),
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    images: ["/no-image.jpeg"],
+  },
 }
 
 export default function RootLayout({
