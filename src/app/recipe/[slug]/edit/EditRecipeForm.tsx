@@ -111,7 +111,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
-    // keyCounter should be above the max index used during init
+    // Steps get their own counter inside useStepRows, so this only needs to
+    // stay ahead of existing ingredient keys.
     keyCounter.current = recipe.ingredients.length
     fetch("/api/units")
       .then((r) => r.json())
