@@ -12,7 +12,7 @@ export const useSaveButtonState = ({
   idleLabel,
 }: UseSaveButtonStateArgs) => {
   const isBusy = isSubmitting || isProcessingImage
-  const label = isSubmitting ? "Saving…" : isProcessingImage ? "Converting photo…" : idleLabel
+  const label = isSubmitting ? "Saving…" : isProcessingImage ? "Processing photo…" : idleLabel
 
   return { isBusy, label }
 }
