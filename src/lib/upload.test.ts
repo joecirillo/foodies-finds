@@ -33,6 +33,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks()
+  vi.unstubAllGlobals()
 })
 
 describe("prepareImageFile", () => {
@@ -154,6 +155,59 @@ describe("prepareImageFile", () => {
 
     await prepareImageFile(file)
 
+    expect(mockImageCompression).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ fileType: "image/jpeg" }),
+    )
+  })
+
+  it("uses OffscreenCanvas.convertToBlob to detect webp support when it exists", async () => {
+    const convertToBlob = vi.fn().mockResolvedValue(new Blob([], { type: "image/webp" }))
+    vi.stubGlobal(
+      "OffscreenCanvas",
+      function MockOffscreenCanvas(this: { convertToBlob: typeof convertToBlob }) {
+        this.convertToBlob = convertToBlob
+      },
+    )
+    const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+
+    await prepareImageFile(file)
+
+    expect(convertToBlob).toHaveBeenCalledWith({ type: "image/webp" })
+    expect(mockImageCompression).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ fileType: "image/webp" }),
+    )
+  })
+
+  it("requests jpeg when OffscreenCanvas silently falls back to png", async () => {
+    const convertToBlob = vi.fn().mockResolvedValue(new Blob([], { type: "image/png" }))
+    vi.stubGlobal(
+      "OffscreenCanvas",
+      function MockOffscreenCanvas(this: { convertToBlob: typeof convertToBlob }) {
+        this.convertToBlob = convertToBlob
+      },
+    )
+    const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+
+    await prepareImageFile(file)
+
+    expect(mockImageCompression).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ fileType: "image/jpeg" }),
+    )
+  })
+
+  it("treats a throwing OffscreenCanvas as no webp support, without touching plain canvas", async () => {
+    vi.stubGlobal("OffscreenCanvas", function MockOffscreenCanvas() {
+      throw new Error("not supported")
+    })
+    const toDataURL = vi.spyOn(HTMLCanvasElement.prototype, "toDataURL")
+    const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+
+    await prepareImageFile(file)
+
+    expect(toDataURL).not.toHaveBeenCalled()
     expect(mockImageCompression).toHaveBeenCalledWith(
       file,
       expect.objectContaining({ fileType: "image/jpeg" }),

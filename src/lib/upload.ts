@@ -84,6 +84,9 @@ const convertHeicToJpeg = async (file: File): Promise<File> => {
 // keeps this check aligned with what the library will really use.
 const canvasSupportsWebpEncoding = async (): Promise<boolean> => {
   if (typeof OffscreenCanvas === "function") {
+    // A construction/encode failure here is unusual enough in practice that it isn't
+    // worth also falling through to the plain-canvas check below — treating it as "no
+    // webp support" just means requesting the universally-supported jpeg instead.
     try {
       const blob = await new OffscreenCanvas(1, 1).convertToBlob({ type: "image/webp" })
       return blob.type === "image/webp"
