@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
 vi.mock("heic-to", () => ({
@@ -130,7 +131,7 @@ describe("prepareImageFile", () => {
     expect(result).toEqual({ error: IMAGE_TOO_LARGE_ERROR })
   })
 
-  it("labels the output as png, not webp, when the browser can't encode webp", async () => {
+  it("labels the output using whatever the browser actually encoded, not the request", async () => {
     mockImageCompression.mockResolvedValueOnce(new Blob(["fake-png"], { type: "image/png" }))
     const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
 
@@ -141,5 +142,17 @@ describe("prepareImageFile", () => {
       expect(result.file.type).toBe("image/png")
       expect(result.file.name).toBe("photo.png")
     }
+  })
+
+  it("requests jpeg instead of webp when the browser can't encode canvas webp", async () => {
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,AAAA")
+    const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+
+    await prepareImageFile(file)
+
+    expect(mockImageCompression).toHaveBeenCalledWith(
+      file,
+      expect.objectContaining({ fileType: "image/jpeg" }),
+    )
   })
 })

@@ -66,9 +66,29 @@ const convertHeicToJpeg = async (file: File): Promise<File> => {
   return new File([converted], name, { type: "image/jpeg" })
 }
 
-// Resizes + re-encodes as WebP off the main thread (browser-image-compression runs
-// the canvas work in a Web Worker). This also strips EXIF — including GPS coordinates
-// phone cameras embed by default — as a side effect of the re-encode.
+// Canvas WebP *encoding* isn't universal (older Safari/iOS in particular can't do it,
+// despite happily displaying WebP), and browser-image-compression's size-targeting loop
+// re-requests the same fileType on every iteration. If that request silently falls back
+// to PNG, the loop is stuck: PNG is lossless, so its quality knob does nothing, leaving
+// only 5%-per-iteration dimension shrinking to hit the target — which a detailed photo
+// can blow through in all 10 iterations, well before the target. JPEG's canvas encoding
+// has no such compatibility gap and gives the loop a real quality lever, so it's the
+// fallback here rather than letting the browser choose PNG for us.
+const canvasSupportsWebpEncoding = (): boolean => {
+  const canvas = document.createElement("canvas")
+  canvas.width = canvas.height = 1
+  return canvas.toDataURL("image/webp").startsWith("data:image/webp")
+}
+
+const EXTENSION_BY_MIME_TYPE: Record<string, string> = {
+  "image/webp": "webp",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+}
+
+// Resizes + re-encodes off the main thread (browser-image-compression runs the canvas
+// work in a Web Worker). This also strips EXIF — including GPS coordinates phone
+// cameras embed by default — as a side effect of the re-encode.
 const compressImage = async (file: File): Promise<File> => {
   const imageCompression = (await import("browser-image-compression")).default
 
@@ -76,19 +96,15 @@ const compressImage = async (file: File): Promise<File> => {
     maxWidthOrHeight: MAX_IMAGE_DIMENSION_PX,
     initialQuality: COMPRESSED_IMAGE_QUALITY,
     maxSizeMB: COMPRESSION_TARGET_MB,
-    fileType: "image/webp",
+    fileType: canvasSupportsWebpEncoding() ? "image/webp" : "image/jpeg",
     useWebWorker: true,
   })
 
-  // Canvas WebP encoding isn't universal (older Safari/iOS in particular can't do it),
-  // and both of the library's internal paths (OffscreenCanvas.convertToBlob and the
-  // toDataURL fallback) silently re-encode as PNG when that happens rather than
-  // honoring fileType — PNG's lossless, size-blind encoding is also why an unsupported
-  // browser can turn the same source photo into a file many times larger. `compressed.type`
-  // reflects what the browser actually produced, so trust that over the request; hardcoding
-  // "webp" here would mislabel a PNG payload and break rendering wherever it's served with
-  // this Content-Type later.
-  const extension = compressed.type === "image/webp" ? "webp" : "png"
+  // Even the chosen fileType isn't a hard guarantee (the browser could still fall back
+  // further), so the actual encoded type — which the browser reports correctly on the
+  // blob — is trusted here rather than assuming the request was honored. Mislabeling
+  // the bytes would break rendering wherever they're served with the wrong Content-Type.
+  const extension = EXTENSION_BY_MIME_TYPE[compressed.type] ?? "jpg"
   const name = file.name.replace(/\.\w+$/, "") + "." + extension
   return new File([compressed], name, { type: compressed.type })
 }
