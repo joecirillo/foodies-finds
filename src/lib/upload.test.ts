@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 vi.mock("heic-to", () => ({
   isHeic: vi.fn(),
@@ -29,6 +29,10 @@ beforeEach(() => {
   mockImageCompression
     .mockReset()
     .mockImplementation(async (file) => new Blob([file], { type: "image/webp" }))
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe("prepareImageFile", () => {

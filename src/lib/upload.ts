@@ -74,7 +74,24 @@ const convertHeicToJpeg = async (file: File): Promise<File> => {
 // can blow through in all 10 iterations, well before the target. JPEG's canvas encoding
 // has no such compatibility gap and gives the loop a real quality lever, so it's the
 // fallback here rather than letting the browser choose PNG for us.
-const canvasSupportsWebpEncoding = (): boolean => {
+//
+// The library builds its working canvas via `new OffscreenCanvas(...)` whenever that
+// constructor exists at all — independent of the useWebWorker option, since OffscreenCanvas
+// works on the main thread too — and only falls back to a plain <canvas> if that throws.
+// OffscreenCanvas shipped later and less consistently than <canvas> (Safari again being
+// the gap), so a plain <canvas>.toDataURL check can report WebP support the encode path
+// doesn't actually have. Testing OffscreenCanvas.convertToBlob directly when it exists
+// keeps this check aligned with what the library will really use.
+const canvasSupportsWebpEncoding = async (): Promise<boolean> => {
+  if (typeof OffscreenCanvas === "function") {
+    try {
+      const blob = await new OffscreenCanvas(1, 1).convertToBlob({ type: "image/webp" })
+      return blob.type === "image/webp"
+    } catch {
+      return false
+    }
+  }
+
   const canvas = document.createElement("canvas")
   canvas.width = canvas.height = 1
   return canvas.toDataURL("image/webp").startsWith("data:image/webp")
@@ -96,7 +113,7 @@ const compressImage = async (file: File): Promise<File> => {
     maxWidthOrHeight: MAX_IMAGE_DIMENSION_PX,
     initialQuality: COMPRESSED_IMAGE_QUALITY,
     maxSizeMB: COMPRESSION_TARGET_MB,
-    fileType: canvasSupportsWebpEncoding() ? "image/webp" : "image/jpeg",
+    fileType: (await canvasSupportsWebpEncoding()) ? "image/webp" : "image/jpeg",
     useWebWorker: true,
   })
 
