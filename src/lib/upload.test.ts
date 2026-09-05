@@ -41,7 +41,7 @@ describe("prepareImageFile", () => {
       expect.objectContaining({
         maxWidthOrHeight: 1920,
         initialQuality: 0.8,
-        maxSizeMB: 4.5,
+        maxSizeMB: 4.3,
         fileType: "image/webp",
         useWebWorker: true,
       }),

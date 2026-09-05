@@ -39,12 +39,15 @@ export type PreparedImage = { file: File } | { error: string }
 const MAX_IMAGE_DIMENSION_PX = 1920
 const COMPRESSED_IMAGE_QUALITY = 0.8
 
-// recipe-api rejects uploads over 5MB. Compression targets comfortably under that so
-// the library has room to iterate on quality/dimensions; the hard check below then
-// catches the rare image that's still too detailed to fit even after that pass,
-// surfacing it here instead of failing later at the presign step.
-const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-const COMPRESSION_TARGET_MB = 4.5
+// recipe-api rejects uploads over 5MB. Whether that's meant as 5,242,880 bytes (5 MiB)
+// or a decimal 5,000,000 isn't visible from here, so the stricter (smaller) reading is
+// used as the hard ceiling — otherwise a file in that ~4% gap would pass this check and
+// still get rejected server-side. Compression targets comfortably under that so the
+// library has room to iterate on quality/dimensions; the hard check below then catches
+// the rare image that's still too detailed to fit even after that pass, surfacing it
+// here instead of failing later at the presign step.
+const MAX_UPLOAD_BYTES = 5_000_000
+const COMPRESSION_TARGET_MB = 4.3
 
 // HEIC/HEIF isn't renderable in an <img> by any non-Safari browser, so a photo straight
 // off an iPhone needs to become JPEG before it's uploaded. heic-to decodes via WASM
