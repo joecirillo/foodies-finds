@@ -11,7 +11,12 @@ vi.mock("browser-image-compression", () => ({
 
 import { isHeic, heicTo } from "heic-to"
 import imageCompression from "browser-image-compression"
-import { prepareImageFile, IMAGE_TYPE_ERROR, IMAGE_CONVERSION_ERROR } from "./upload"
+import {
+  prepareImageFile,
+  IMAGE_TYPE_ERROR,
+  IMAGE_CONVERSION_ERROR,
+  IMAGE_TOO_LARGE_ERROR,
+} from "./upload"
 
 const mockIsHeic = vi.mocked(isHeic)
 const mockHeicTo = vi.mocked(heicTo)
@@ -36,6 +41,7 @@ describe("prepareImageFile", () => {
       expect.objectContaining({
         maxWidthOrHeight: 1920,
         initialQuality: 0.8,
+        maxSizeMB: 4.5,
         fileType: "image/webp",
         useWebWorker: true,
       }),
@@ -102,5 +108,25 @@ describe("prepareImageFile", () => {
     const result = await prepareImageFile(file)
 
     expect(result).toEqual({ error: IMAGE_CONVERSION_ERROR })
+  })
+
+  it("returns a too-large error when a compressed image still exceeds 5MB", async () => {
+    const oversized = new Uint8Array(6 * 1024 * 1024)
+    mockImageCompression.mockResolvedValueOnce(new Blob([oversized], { type: "image/webp" }))
+    const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+
+    const result = await prepareImageFile(file)
+
+    expect(result).toEqual({ error: IMAGE_TOO_LARGE_ERROR })
+  })
+
+  it("returns a too-large error for a GIF over 5MB since GIFs skip compression", async () => {
+    const oversized = new Uint8Array(6 * 1024 * 1024)
+    const file = new File([oversized], "photo.gif", { type: "image/gif" })
+
+    const result = await prepareImageFile(file)
+
+    expect(mockImageCompression).not.toHaveBeenCalled()
+    expect(result).toEqual({ error: IMAGE_TOO_LARGE_ERROR })
   })
 })

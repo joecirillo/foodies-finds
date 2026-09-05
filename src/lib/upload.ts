@@ -29,12 +29,22 @@ export const IMAGE_TYPE_ERROR = "File must be a jpeg, png, webp, or gif photo."
 
 export const IMAGE_CONVERSION_ERROR = "Couldn't process that photo — please try a different one."
 
+export const IMAGE_TOO_LARGE_ERROR =
+  "That photo is too large even after compression — please try a different one."
+
 export type PreparedImage = { file: File } | { error: string }
 
 // Long edge cap for uploaded recipe photos — never displayed larger than this,
 // so anything wider gets downscaled before it's re-encoded.
 const MAX_IMAGE_DIMENSION_PX = 1920
 const COMPRESSED_IMAGE_QUALITY = 0.8
+
+// recipe-api rejects uploads over 5MB. Compression targets comfortably under that so
+// the library has room to iterate on quality/dimensions; the hard check below then
+// catches the rare image that's still too detailed to fit even after that pass,
+// surfacing it here instead of failing later at the presign step.
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+const COMPRESSION_TARGET_MB = 4.5
 
 // HEIC/HEIF isn't renderable in an <img> by any non-Safari browser, so a photo straight
 // off an iPhone needs to become JPEG before it's uploaded. heic-to decodes via WASM
@@ -62,6 +72,7 @@ const compressImage = async (file: File): Promise<File> => {
   const compressed = await imageCompression(file, {
     maxWidthOrHeight: MAX_IMAGE_DIMENSION_PX,
     initialQuality: COMPRESSED_IMAGE_QUALITY,
+    maxSizeMB: COMPRESSION_TARGET_MB,
     fileType: "image/webp",
     useWebWorker: true,
   })
@@ -86,14 +97,18 @@ export const prepareImageFile = async (file: File): Promise<PreparedImage> => {
 
   // A canvas-based re-encode would flatten an animated GIF to its first frame,
   // so GIFs are uploaded as-is rather than run through compression.
-  if (workingFile.type === "image/gif") {
-    return { file: workingFile }
+  if (workingFile.type !== "image/gif") {
+    try {
+      workingFile = await compressImage(workingFile)
+    } catch (err) {
+      console.error("Image compression failed:", err)
+      return { error: IMAGE_CONVERSION_ERROR }
+    }
   }
 
-  try {
-    return { file: await compressImage(workingFile) }
-  } catch (err) {
-    console.error("Image compression failed:", err)
-    return { error: IMAGE_CONVERSION_ERROR }
+  if (workingFile.size > MAX_UPLOAD_BYTES) {
+    return { error: IMAGE_TOO_LARGE_ERROR }
   }
+
+  return { file: workingFile }
 }
