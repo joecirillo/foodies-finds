@@ -7,13 +7,20 @@ import {
   presignRecipeImageUploadAction,
 } from "@/app/actions/recipe"
 import { CuisinePicker } from "@/components/recipe/CuisinePicker"
+import {
+  FieldError,
+  FieldLabel,
+  SectionHeading,
+  textareaClass,
+} from "@/components/recipe/RecipeFormFields"
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
+import { useStepRows } from "@/hooks/useStepRows"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
-import type { EntityOption, IngredientRow, StepRow, Unit } from "@/types/recipe"
+import type { EntityOption, IngredientRow, Unit } from "@/types/recipe"
 import {
   ArrowLeft02Icon,
   Delete02Icon,
@@ -24,42 +31,14 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 type SearchResult = { id: number; name: string }
-
-const SectionHeading = ({
-  children,
-  required,
-}: {
-  children: React.ReactNode
-  required?: boolean
-}) => (
-  <h2 className="font-heading text-lg font-semibold mb-3">
-    {children}
-    {required && <span className="text-destructive ml-0.5">*</span>}
-  </h2>
-)
-
-const FieldLabel = ({ children, required }: { children: React.ReactNode; required?: boolean }) => (
-  <label className="block text-sm font-medium text-foreground mb-1.5">
-    {children}
-    {required && <span className="text-destructive ml-0.5">*</span>}
-  </label>
-)
-
-const FieldError = ({ message }: { message?: string }) =>
-  message ? <p className="mt-1 text-xs text-destructive">{message}</p> : null
-
-const textareaClass =
-  "w-full min-w-0 rounded-xl border border-input bg-input/30 px-3 py-2 text-base transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 resize-none"
 
 export const RecipeForm = () => {
   const router = useRouter()
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
-  const dragIndex = useRef<number | null>(null)
-  const stepsListRef = useRef<HTMLDivElement>(null)
 
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
@@ -86,7 +65,9 @@ export const RecipeForm = () => {
     },
   ])
 
-  const [steps, setSteps] = useState<StepRow[]>([{ key: 0, description: "", tip: "" }])
+  const { steps, stepsListRef, addStep, removeStep, updateStep, dragHandlersFor } = useStepRows({
+    initialSteps: [{ key: 0, description: "", tip: "" }],
+  })
 
   const [units, setUnits] = useState<Unit[]>([])
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -152,74 +133,6 @@ export const RecipeForm = () => {
 
   const removeIngredient = (index: number) => {
     setIngredients((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const addStep = () => {
-    setSteps((prev) => [...prev, { key: nextKey(), description: "", tip: "" }])
-  }
-
-  const removeStep = (index: number) => {
-    setSteps((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const reorderStep = useCallback((fromIndex: number, toIndex: number) => {
-    setSteps((prev) => {
-      const next = [...prev]
-      const [moved] = next.splice(fromIndex, 1)
-      next.splice(toIndex, 0, moved)
-      return next
-    })
-  }, [])
-
-  useEffect(() => {
-    const container = stepsListRef.current
-    if (!container) return
-
-    let fromIndex: number | null = null
-    let toIndex: number | null = null
-
-    const onTouchStart = (e: TouchEvent) => {
-      const handle = (e.target as HTMLElement).closest("[data-drag-handle]")
-      if (!handle) return
-      const row = handle.closest("[data-step-index]") as HTMLElement | null
-      if (row?.dataset.stepIndex !== undefined) {
-        fromIndex = parseInt(row.dataset.stepIndex)
-        toIndex = fromIndex
-      }
-    }
-
-    const onTouchMove = (e: TouchEvent) => {
-      if (fromIndex === null) return
-      e.preventDefault()
-      const touch = e.touches[0]
-      const el = document.elementFromPoint(touch.clientX, touch.clientY)
-      const row = el?.closest("[data-step-index]") as HTMLElement | null
-      if (row?.dataset.stepIndex !== undefined) {
-        toIndex = parseInt(row.dataset.stepIndex)
-      }
-    }
-
-    const onTouchEnd = () => {
-      if (fromIndex !== null && toIndex !== null && fromIndex !== toIndex) {
-        reorderStep(fromIndex, toIndex)
-      }
-      fromIndex = null
-      toIndex = null
-    }
-
-    container.addEventListener("touchstart", onTouchStart, { passive: true })
-    container.addEventListener("touchmove", onTouchMove, { passive: false })
-    container.addEventListener("touchend", onTouchEnd, { passive: true })
-
-    return () => {
-      container.removeEventListener("touchstart", onTouchStart)
-      container.removeEventListener("touchmove", onTouchMove)
-      container.removeEventListener("touchend", onTouchEnd)
-    }
-  }, [reorderStep])
-
-  const updateStep = (index: number, updates: Partial<StepRow>) => {
-    setSteps((prev) => prev.map((row, i) => (i === index ? { ...row, ...updates } : row)))
   }
 
   const validate = () => {
@@ -657,16 +570,7 @@ export const RecipeForm = () => {
                 className="flex gap-3"
                 data-step-index={index}
                 draggable
-                onDragStart={() => {
-                  dragIndex.current = index
-                }}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={() => {
-                  if (dragIndex.current !== null && dragIndex.current !== index) {
-                    reorderStep(dragIndex.current, index)
-                  }
-                  dragIndex.current = null
-                }}
+                {...dragHandlersFor(index)}
               >
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground mt-2.5">
                   {index + 1}
