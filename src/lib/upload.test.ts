@@ -129,4 +129,17 @@ describe("prepareImageFile", () => {
     expect(mockImageCompression).not.toHaveBeenCalled()
     expect(result).toEqual({ error: IMAGE_TOO_LARGE_ERROR })
   })
+
+  it("labels the output as png, not webp, when the browser can't encode webp", async () => {
+    mockImageCompression.mockResolvedValueOnce(new Blob(["fake-png"], { type: "image/png" }))
+    const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
+
+    const result = await prepareImageFile(file)
+
+    expect(result).toEqual({ file: expect.any(File) })
+    if ("file" in result) {
+      expect(result.file.type).toBe("image/png")
+      expect(result.file.name).toBe("photo.png")
+    }
+  })
 })

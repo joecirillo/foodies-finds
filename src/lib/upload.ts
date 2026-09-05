@@ -80,8 +80,17 @@ const compressImage = async (file: File): Promise<File> => {
     useWebWorker: true,
   })
 
-  const name = file.name.replace(/\.\w+$/, "") + ".webp"
-  return new File([compressed], name, { type: "image/webp" })
+  // Canvas WebP encoding isn't universal (older Safari/iOS in particular can't do it),
+  // and both of the library's internal paths (OffscreenCanvas.convertToBlob and the
+  // toDataURL fallback) silently re-encode as PNG when that happens rather than
+  // honoring fileType — PNG's lossless, size-blind encoding is also why an unsupported
+  // browser can turn the same source photo into a file many times larger. `compressed.type`
+  // reflects what the browser actually produced, so trust that over the request; hardcoding
+  // "webp" here would mislabel a PNG payload and break rendering wherever it's served with
+  // this Content-Type later.
+  const extension = compressed.type === "image/webp" ? "webp" : "png"
+  const name = file.name.replace(/\.\w+$/, "") + "." + extension
+  return new File([compressed], name, { type: compressed.type })
 }
 
 export const prepareImageFile = async (file: File): Promise<PreparedImage> => {
