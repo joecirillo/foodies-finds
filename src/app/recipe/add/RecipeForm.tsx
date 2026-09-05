@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/recipe"
 import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import { TagPicker } from "@/components/recipe/TagPicker"
+import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
@@ -600,22 +601,12 @@ export const RecipeForm = () => {
                   </div>
                   <div>
                     <FieldLabel required>Unit</FieldLabel>
-                    <select
-                      value={ingredient.unitId ?? ""}
-                      onChange={(e) =>
-                        updateIngredient(index, {
-                          unitId: e.target.value ? parseInt(e.target.value) : null,
-                        })
-                      }
-                      className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    >
-                      <option value="">—</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.abbreviation})
-                        </option>
-                      ))}
-                    </select>
+                    <UnitPicker
+                      units={units}
+                      value={ingredient.unitId}
+                      onChange={(unitId) => updateIngredient(index, { unitId })}
+                      ariaInvalid={!!errors[`ingredient-${index}-unit`]}
+                    />
                     <FieldError message={errors[`ingredient-${index}-unit`]} />
                   </div>
                 </div>

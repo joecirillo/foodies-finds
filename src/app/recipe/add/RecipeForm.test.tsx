@@ -78,12 +78,12 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function fillRequiredFields(
-  user: ReturnType<typeof userEvent.setup>,
-  container: HTMLElement,
-) {
-  await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
+async function selectUnit(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("button", { name: "—" }))
+  await user.click(await screen.findByRole("option", { name }))
+}
 
+async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   const spinbuttons = screen.getAllByRole("spinbutton")
   await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "Test Recipe")
   await user.type(spinbuttons[0], "10") // prep time
@@ -93,8 +93,7 @@ async function fillRequiredFields(
   await user.keyboard("{Enter}")
 
   await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  await user.selectOptions(container.querySelector("select")!, "1")
+  await selectUnit(user, "gram (g)")
 
   await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
 }
@@ -216,9 +215,8 @@ describe("RecipeForm", () => {
 
       mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
+      render(<RecipeForm />)
 
-      await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
       const spinbuttons = screen.getAllByRole("spinbutton")
       await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "spaghetti bolognese")
       await user.type(spinbuttons[0], "10")
@@ -226,7 +224,7 @@ describe("RecipeForm", () => {
       await user.type(screen.getByPlaceholderText("Search cuisines…"), "Italian")
       await user.keyboard("{Enter}")
       await user.type(screen.getByPlaceholderText("Ingredient name"), "extra-virgin olive oil")
-      await user.selectOptions(container.querySelector("select")!, "1")
+      await selectUnit(user, "gram (g)")
       await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -281,8 +279,8 @@ describe("RecipeForm", () => {
       mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: true })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -313,8 +311,8 @@ describe("RecipeForm", () => {
       mockPresignRecipeImageUploadAction.mockResolvedValueOnce({ ok: false, error: "boom" })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -332,8 +330,8 @@ describe("RecipeForm", () => {
       mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: false })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -350,8 +348,8 @@ describe("RecipeForm", () => {
       mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -368,8 +366,8 @@ describe("RecipeForm", () => {
       mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
 
@@ -389,8 +387,8 @@ describe("RecipeForm", () => {
       mockHeicTo.mockResolvedValueOnce(convertedBlob)
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       // userEvent.upload enforces the input's accept filter like a real OS picker would;
       // fireEvent bypasses that so the test isn't coupled to that filtering.
@@ -420,8 +418,8 @@ describe("RecipeForm", () => {
       mockHeicTo.mockRejectedValueOnce(new Error("decode failed"))
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       const file = new File(["fake-heic"], "photo.heic", { type: "image/heic" })
       const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -446,8 +444,8 @@ describe("RecipeForm", () => {
       mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       const file = new File(["fake-pdf"], "recipe.pdf", { type: "application/pdf" })
       const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -617,8 +615,8 @@ describe("RecipeForm", () => {
       )
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
 
