@@ -575,6 +575,26 @@ describe("RecipeForm", () => {
       ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Step one")
     })
+
+    it("only marks a step row draggable while its handle is pressed", async () => {
+      const user = userEvent.setup()
+      render(<RecipeForm />)
+
+      await user.type(screen.getByPlaceholderText("Describe this step…"), "Step one")
+
+      const stepRow = screen
+        .getByPlaceholderText("Describe this step…")
+        .closest("[data-step-index]") as HTMLElement
+      const handle = screen.getByLabelText("Drag to reorder step")
+
+      expect(stepRow).toHaveAttribute("draggable", "false")
+
+      fireEvent.mouseDown(handle)
+      expect(stepRow).toHaveAttribute("draggable", "true")
+
+      fireEvent.mouseUp(handle)
+      expect(stepRow).toHaveAttribute("draggable", "false")
+    })
   })
 
   describe("custom tags", () => {

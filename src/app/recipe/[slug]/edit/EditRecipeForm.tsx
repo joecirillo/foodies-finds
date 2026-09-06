@@ -68,6 +68,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const nextKey = () => ++keyCounter.current
   const dragIndex = useRef<number | null>(null)
   const stepsListRef = useRef<HTMLDivElement>(null)
+  const [dragHandleIndex, setDragHandleIndex] = useState<number | null>(null)
 
   const [name, setName] = useState(recipe.name)
   const [description, setDescription] = useState(recipe.description ?? "")
@@ -688,9 +689,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                 key={step.key}
                 className="flex gap-3"
                 data-step-index={index}
-                draggable
+                draggable={dragHandleIndex === index}
                 onDragStart={() => {
                   dragIndex.current = index
+                }}
+                onDragEnd={() => {
+                  setDragHandleIndex(null)
                 }}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => {
@@ -710,6 +714,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                       data-drag-handle
                       className="mt-1 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
                       aria-label="Drag to reorder step"
+                      onMouseDown={() => setDragHandleIndex(index)}
+                      onMouseUp={() => setDragHandleIndex(null)}
                     >
                       <HugeiconsIcon icon={DragDropVerticalIcon} className="size-4" />
                     </button>

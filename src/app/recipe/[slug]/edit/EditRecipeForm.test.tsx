@@ -764,6 +764,27 @@ describe("EditRecipeForm", () => {
       expect(textareas[0].value).toBe("Boil the pasta")
       expect(textareas[1].value).toBe("Add the sauce")
     })
+
+    it("only marks a step row draggable while its handle is pressed", () => {
+      const recipe: Recipe = {
+        ...baseRecipe,
+        steps: [{ stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null }],
+      }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      const stepRow = screen
+        .getByPlaceholderText("Describe this step…")
+        .closest("[data-step-index]") as HTMLElement
+      const handle = screen.getByLabelText("Drag to reorder step")
+
+      expect(stepRow).toHaveAttribute("draggable", "false")
+
+      fireEvent.mouseDown(handle)
+      expect(stepRow).toHaveAttribute("draggable", "true")
+
+      fireEvent.mouseUp(handle)
+      expect(stepRow).toHaveAttribute("draggable", "false")
+    })
   })
 
   describe("cuisine", () => {
