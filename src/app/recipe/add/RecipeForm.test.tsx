@@ -496,6 +496,22 @@ describe("RecipeForm", () => {
     })
   })
 
+  describe("long text fields", () => {
+    it("renders ingredient notes as a scrollable textarea, not a single-line input", () => {
+      render(<RecipeForm />)
+
+      const notes = screen.getByPlaceholderText("e.g. finely chopped (optional)")
+      expect(notes.tagName).toBe("TEXTAREA")
+    })
+
+    it("renders step tip as a scrollable textarea, not a single-line input", () => {
+      render(<RecipeForm />)
+
+      const tip = screen.getByPlaceholderText("Tip (optional)")
+      expect(tip.tagName).toBe("TEXTAREA")
+    })
+  })
+
   describe("step drag reordering", () => {
     it("reorders steps when dragged", async () => {
       const user = userEvent.setup()

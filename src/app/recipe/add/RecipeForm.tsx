@@ -613,10 +613,12 @@ export const RecipeForm = () => {
                 </div>
                 <div>
                   <FieldLabel>Notes</FieldLabel>
-                  <Input
+                  <textarea
                     value={ingredient.notes}
                     onChange={(e) => updateIngredient(index, { notes: e.target.value })}
                     placeholder="e.g. finely chopped (optional)"
+                    rows={2}
+                    className={textareaClass}
                   />
                 </div>
               </div>
@@ -696,10 +698,12 @@ export const RecipeForm = () => {
                       </button>
                     )}
                   </div>
-                  <Input
+                  <textarea
                     value={step.tip}
                     onChange={(e) => updateStep(index, { tip: e.target.value })}
                     placeholder="Tip (optional)"
+                    rows={2}
+                    className={textareaClass}
                   />
                 </div>
               </div>
