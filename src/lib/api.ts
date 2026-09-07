@@ -22,12 +22,15 @@ async function apiError(res: Response): Promise<Error> {
   return err
 }
 
-async function apiFetch<T>(path: string, revalidate: number | false = 60): Promise<T> {
+async function apiFetch<T>(
+  path: string,
+  { revalidate = 60, tags }: { revalidate?: number | false; tags?: string[] } = {},
+): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
     headers: {
       "x-api-key": process.env.API_KEY ?? "",
     },
-    next: { revalidate },
+    next: { revalidate, tags },
   })
 
   if (!res.ok) throw await apiError(res)
@@ -54,7 +57,10 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
 
 export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipes/${id}`)
 
-export const listRecipes = () => apiFetch<RecipeSearchResult[]>("/recipes")
+export const RECIPES_LIST_TAG = "recipes-list"
+
+export const listRecipes = () =>
+  apiFetch<RecipeSearchResult[]>("/recipes", { tags: [RECIPES_LIST_TAG] })
 
 async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
@@ -95,7 +101,7 @@ export const searchIngredients = (query: string) =>
 export const searchTags = (query: string) =>
   apiFetch<Tag[]>(`/tags?query=${encodeURIComponent(query)}`)
 
-export const listUnits = () => apiFetch<Unit[]>("/units", 3600)
+export const listUnits = () => apiFetch<Unit[]>("/units", { revalidate: 3600 })
 
 export const presignRecipeImageUpload = (contentType: string, contentLength: number) =>
   apiPost<PresignedImageUpload>("/recipes/images/presign", { contentType, contentLength })

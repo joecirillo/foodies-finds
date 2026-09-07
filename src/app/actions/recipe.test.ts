@@ -7,10 +7,12 @@ vi.mock("@/lib/api", () => ({
   updateRecipeImage: vi.fn(),
   presignRecipeImageUpload: vi.fn(),
   deleteRecipeImage: vi.fn(),
+  RECIPES_LIST_TAG: "recipes-list",
 }))
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
+  updateTag: vi.fn(),
 }))
 
 import {
@@ -19,8 +21,9 @@ import {
   updateRecipeImage,
   presignRecipeImageUpload,
   deleteRecipeImage,
+  RECIPES_LIST_TAG,
 } from "@/lib/api"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
 import {
   addRecipeAction,
   updateRecipeAction,
@@ -35,6 +38,7 @@ const mockUpdateRecipeImage = vi.mocked(updateRecipeImage)
 const mockPresignRecipeImageUpload = vi.mocked(presignRecipeImageUpload)
 const mockDeleteRecipeImage = vi.mocked(deleteRecipeImage)
 const mockRevalidatePath = vi.mocked(revalidatePath)
+const mockUpdateTag = vi.mocked(updateTag)
 
 beforeEach(() => {
   mockAddRecipe.mockReset()
@@ -43,6 +47,7 @@ beforeEach(() => {
   mockPresignRecipeImageUpload.mockReset()
   mockDeleteRecipeImage.mockReset()
   mockRevalidatePath.mockReset()
+  mockUpdateTag.mockReset()
 })
 
 describe("addRecipeAction", () => {
@@ -97,6 +102,21 @@ describe("addRecipeAction", () => {
 
     const result = await addRecipeAction({ name: "Pizza" } as SaveRecipeRequest)
     expect(result).toEqual({ ok: false, error: "Failed to save recipe" })
+  })
+
+  it("calls updateTag with the recipes list tag on success", async () => {
+    mockAddRecipe.mockResolvedValueOnce({ id: 5 } as Recipe)
+
+    await addRecipeAction({ name: "Pizza" } as SaveRecipeRequest)
+    expect(mockUpdateTag).toHaveBeenCalledWith(RECIPES_LIST_TAG)
+  })
+
+  it("does not call updateTag when save fails", async () => {
+    const err = Object.assign(new Error("API 500"), { code: "500" })
+    mockAddRecipe.mockRejectedValueOnce(err)
+
+    await addRecipeAction({ name: "Pizza" } as SaveRecipeRequest)
+    expect(mockUpdateTag).not.toHaveBeenCalled()
   })
 })
 
@@ -175,6 +195,21 @@ describe("updateRecipeAction", () => {
 
     await updateRecipeAction(7, { name: "Pizza" } as EditRecipeRequest)
     expect(mockRevalidatePath).not.toHaveBeenCalled()
+  })
+
+  it("calls updateTag with the recipes list tag on success", async () => {
+    mockUpdateRecipe.mockResolvedValueOnce({ id: 7 } as Recipe)
+
+    await updateRecipeAction(7, { name: "Pizza" } as EditRecipeRequest)
+    expect(mockUpdateTag).toHaveBeenCalledWith(RECIPES_LIST_TAG)
+  })
+
+  it("does not call updateTag when update fails", async () => {
+    const err = Object.assign(new Error("API 500"), { code: "500" })
+    mockUpdateRecipe.mockRejectedValueOnce(err)
+
+    await updateRecipeAction(7, { name: "Pizza" } as EditRecipeRequest)
+    expect(mockUpdateTag).not.toHaveBeenCalled()
   })
 })
 

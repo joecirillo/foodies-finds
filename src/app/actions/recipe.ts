@@ -1,12 +1,13 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, updateTag } from "next/cache"
 import {
   addRecipe,
   updateRecipe,
   updateRecipeImage,
   presignRecipeImageUpload,
   deleteRecipeImage,
+  RECIPES_LIST_TAG,
 } from "@/lib/api"
 import { ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR } from "@/lib/upload"
 import type { SaveRecipeRequest, EditRecipeRequest, PresignedImageUpload } from "@/types/recipe"
@@ -71,6 +72,7 @@ export const addRecipeAction = async (payload: SaveRecipeRequest): Promise<Actio
       return { ok: false, error: "Recipe was saved but no ID was returned" }
     }
     console.log("Recipe saved:", id, payload.name)
+    updateTag(RECIPES_LIST_TAG)
     return { ok: true, id }
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code
@@ -98,6 +100,7 @@ export const updateRecipeAction = async (
     }
     console.log("Recipe updated:", resultId, "fields:", changedFields)
     revalidatePath(`/recipe/${resultId}`)
+    updateTag(RECIPES_LIST_TAG)
     return { ok: true, id: resultId }
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code
