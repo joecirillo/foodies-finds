@@ -40,6 +40,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const router = useRouter()
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
+  const mountedRef = useRef(true)
 
   const [name, setName] = useState(recipe.name)
   const [description, setDescription] = useState(recipe.description ?? "")
@@ -128,6 +129,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       .then((data: Unit[]) => setUnits(data))
       .catch(() => {})
   }, [recipe.ingredients.length])
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
 
   const debounce = (key: string, fn: () => void, delay = 300) => {
     if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
@@ -281,6 +288,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       }
       router.push(`/recipe/${recipe.id}`)
       router.refresh()
+      // router.push doesn't await the navigation, and this component normally
+      // unmounts once it lands — this is just a backstop against a stalled
+      // transition leaving the button spinning with nothing happening on screen.
+      setTimeout(() => {
+        if (mountedRef.current) setIsSubmitting(false)
+      }, 5000)
     } else {
       if (newImageKey) {
         deleteRecipeImageAction(newImageKey)
