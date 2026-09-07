@@ -273,8 +273,10 @@ describe("EditRecipeForm", () => {
 
       await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/recipe/1")
-        expect(mockRefresh).toHaveBeenCalled()
       })
+      // updateRecipeAction already revalidates the destination path server-side,
+      // so a client-side refresh here is unnecessary and previously raced the push.
+      expect(mockRefresh).not.toHaveBeenCalled()
     })
 
     it("shows the error message returned by the action on failure", async () => {

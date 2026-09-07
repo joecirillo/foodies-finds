@@ -286,8 +286,11 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       if (newImageKey && existingImageUrl) {
         deleteRecipeImageAction(existingImageUrl)
       }
+      // updateRecipeAction already calls revalidatePath for this route server-side,
+      // which Next.js propagates to the client automatically. Calling router.refresh()
+      // here too raced the pending push transition and could drop the navigation
+      // entirely, leaving the edit form mounted despite the save having succeeded.
       router.push(`/recipe/${recipe.id}`)
-      router.refresh()
       // router.push doesn't await the navigation, and this component normally
       // unmounts once it lands — this is just a backstop against a stalled
       // transition leaving the button spinning with nothing happening on screen.
