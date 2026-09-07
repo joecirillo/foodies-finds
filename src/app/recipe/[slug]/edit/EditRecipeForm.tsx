@@ -131,6 +131,11 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   }, [recipe.ingredients.length])
 
   useEffect(() => {
+    // Strict Mode mounts, cleans up, and remounts every component once in dev to
+    // surface effect bugs — without resetting mountedRef here in the setup, that
+    // cleanup would leave it permanently false even though the component is still
+    // genuinely mounted, silently defeating the backstop below in development.
+    mountedRef.current = true
     return () => {
       mountedRef.current = false
     }
