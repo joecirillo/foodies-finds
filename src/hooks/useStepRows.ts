@@ -12,6 +12,7 @@ export const useStepRows = ({ initialSteps }: UseStepRowsArgs) => {
   const keyCounter = useRef(initialSteps.length)
   const dragIndex = useRef<number | null>(null)
   const stepsListRef = useRef<HTMLDivElement>(null)
+  const [dragHandleIndex, setDragHandleIndex] = useState<number | null>(null)
 
   const addStep = () => {
     setSteps((prev) => [...prev, { key: ++keyCounter.current, description: "", tip: "" }])
@@ -35,8 +36,12 @@ export const useStepRows = ({ initialSteps }: UseStepRowsArgs) => {
   }, [])
 
   const dragHandlersFor = (index: number) => ({
+    draggable: dragHandleIndex === index,
     onDragStart: () => {
       dragIndex.current = index
+    },
+    onDragEnd: () => {
+      setDragHandleIndex(null)
     },
     onDragOver: (e: React.DragEvent) => e.preventDefault(),
     onDrop: () => {
@@ -45,6 +50,13 @@ export const useStepRows = ({ initialSteps }: UseStepRowsArgs) => {
       }
       dragIndex.current = null
     },
+  })
+
+  // Row is only draggable while its handle is pressed, so click-dragging
+  // inside a textarea inside the row selects text instead of starting a drag.
+  const dragHandlePropsFor = (index: number) => ({
+    onMouseDown: () => setDragHandleIndex(index),
+    onMouseUp: () => setDragHandleIndex(null),
   })
 
   // Native HTML5 drag-and-drop (used above) has no touch equivalent, so mobile
@@ -96,5 +108,13 @@ export const useStepRows = ({ initialSteps }: UseStepRowsArgs) => {
     }
   }, [reorderStep])
 
-  return { steps, stepsListRef, addStep, removeStep, updateStep, dragHandlersFor }
+  return {
+    steps,
+    stepsListRef,
+    addStep,
+    removeStep,
+    updateStep,
+    dragHandlersFor,
+    dragHandlePropsFor,
+  }
 }

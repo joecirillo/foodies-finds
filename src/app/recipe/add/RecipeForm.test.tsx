@@ -26,6 +26,10 @@ vi.mock("heic-to", () => ({
   heicTo: vi.fn(),
 }))
 
+vi.mock("browser-image-compression", () => ({
+  default: vi.fn(),
+}))
+
 import { useRouter } from "next/navigation"
 import {
   addRecipeAction,
@@ -34,6 +38,7 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { isHeic, heicTo } from "heic-to"
+import imageCompression from "browser-image-compression"
 
 const mockUseRouter = vi.mocked(useRouter)
 const mockAddRecipeAction = vi.mocked(addRecipeAction)
@@ -42,6 +47,7 @@ const mockAttachRecipeImageAction = vi.mocked(attachRecipeImageAction)
 const mockDeleteRecipeImageAction = vi.mocked(deleteRecipeImageAction)
 const mockIsHeic = vi.mocked(isHeic)
 const mockHeicTo = vi.mocked(heicTo)
+const mockImageCompression = vi.mocked(imageCompression)
 
 window.HTMLElement.prototype.scrollIntoView = vi.fn()
 
@@ -63,6 +69,9 @@ beforeEach(() => {
   mockDeleteRecipeImageAction.mockReset()
   mockIsHeic.mockReset().mockResolvedValue(false)
   mockHeicTo.mockReset()
+  mockImageCompression
+    .mockReset()
+    .mockImplementation(async (file) => new Blob([file], { type: "image/webp" }))
 
   vi.stubGlobal(
     "fetch",
@@ -78,12 +87,12 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-async function fillRequiredFields(
-  user: ReturnType<typeof userEvent.setup>,
-  container: HTMLElement,
-) {
-  await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
+async function selectUnit(user: ReturnType<typeof userEvent.setup>, name: string) {
+  await user.click(screen.getByRole("button", { name: "—" }))
+  await user.click(await screen.findByRole("option", { name }))
+}
 
+async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   const spinbuttons = screen.getAllByRole("spinbutton")
   await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "Test Recipe")
   await user.type(spinbuttons[0], "10") // prep time
@@ -93,8 +102,7 @@ async function fillRequiredFields(
   await user.keyboard("{Enter}")
 
   await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  await user.selectOptions(container.querySelector("select")!, "1")
+  await selectUnit(user, "gram (g)")
 
   await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
 }
@@ -216,9 +224,8 @@ describe("RecipeForm", () => {
 
       mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
+      render(<RecipeForm />)
 
-      await waitFor(() => screen.getByRole("option", { name: "gram (g)" }))
       const spinbuttons = screen.getAllByRole("spinbutton")
       await user.type(screen.getByPlaceholderText("e.g. Grandma's Lasagna"), "spaghetti bolognese")
       await user.type(spinbuttons[0], "10")
@@ -226,7 +233,7 @@ describe("RecipeForm", () => {
       await user.type(screen.getByPlaceholderText("Search cuisines…"), "Italian")
       await user.keyboard("{Enter}")
       await user.type(screen.getByPlaceholderText("Ingredient name"), "extra-virgin olive oil")
-      await user.selectOptions(container.querySelector("select")!, "1")
+      await selectUnit(user, "gram (g)")
       await user.type(screen.getByPlaceholderText("Describe this step…"), "Mix the ingredients")
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -281,8 +288,8 @@ describe("RecipeForm", () => {
       mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: true })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -294,7 +301,7 @@ describe("RecipeForm", () => {
       })
       await waitFor(() => {
         expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
-          "image/jpeg",
+          "image/webp",
           expect.any(Number),
         )
       })
@@ -313,8 +320,8 @@ describe("RecipeForm", () => {
       mockPresignRecipeImageUploadAction.mockResolvedValueOnce({ ok: false, error: "boom" })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -332,8 +339,8 @@ describe("RecipeForm", () => {
       mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: false })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -350,8 +357,8 @@ describe("RecipeForm", () => {
       mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
       await selectImageFile(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -368,8 +375,8 @@ describe("RecipeForm", () => {
       mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
 
@@ -389,8 +396,8 @@ describe("RecipeForm", () => {
       mockHeicTo.mockResolvedValueOnce(convertedBlob)
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       // userEvent.upload enforces the input's accept filter like a real OS picker would;
       // fireEvent bypasses that so the test isn't coupled to that filtering.
@@ -399,7 +406,7 @@ describe("RecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       await waitFor(() => {
-        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+        expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
 
       await user.click(screen.getAllByText("Save Recipe")[0])
@@ -408,7 +415,7 @@ describe("RecipeForm", () => {
         expect(mockPush).toHaveBeenCalledWith("/recipe/1")
       })
       expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
-        "image/jpeg",
+        "image/webp",
         convertedBlob.size,
       )
     })
@@ -420,8 +427,8 @@ describe("RecipeForm", () => {
       mockHeicTo.mockRejectedValueOnce(new Error("decode failed"))
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       const file = new File(["fake-heic"], "photo.heic", { type: "image/heic" })
       const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -446,8 +453,8 @@ describe("RecipeForm", () => {
       mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       const file = new File(["fake-pdf"], "recipe.pdf", { type: "application/pdf" })
       const input = document.querySelector('input[type="file"]') as HTMLInputElement
@@ -486,6 +493,22 @@ describe("RecipeForm", () => {
       await user.keyboard("{Enter}")
 
       expect(screen.getByText("Tex-Mex Fusion")).toBeInTheDocument()
+    })
+  })
+
+  describe("long text fields", () => {
+    it("renders ingredient notes as a scrollable textarea, not a single-line input", () => {
+      render(<RecipeForm />)
+
+      const notes = screen.getByPlaceholderText("e.g. finely chopped (optional)")
+      expect(notes.tagName).toBe("TEXTAREA")
+    })
+
+    it("renders step tip as a scrollable textarea, not a single-line input", () => {
+      render(<RecipeForm />)
+
+      const tip = screen.getByPlaceholderText("Tip (optional)")
+      expect(tip.tagName).toBe("TEXTAREA")
     })
   })
 
@@ -568,6 +591,26 @@ describe("RecipeForm", () => {
       ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Step one")
     })
+
+    it("only marks a step row draggable while its handle is pressed", async () => {
+      const user = userEvent.setup()
+      render(<RecipeForm />)
+
+      await user.type(screen.getByPlaceholderText("Describe this step…"), "Step one")
+
+      const stepRow = screen
+        .getByPlaceholderText("Describe this step…")
+        .closest("[data-step-index]") as HTMLElement
+      const handle = screen.getByLabelText("Drag to reorder step")
+
+      expect(stepRow).toHaveAttribute("draggable", "false")
+
+      fireEvent.mouseDown(handle)
+      expect(stepRow).toHaveAttribute("draggable", "true")
+
+      fireEvent.mouseUp(handle)
+      expect(stepRow).toHaveAttribute("draggable", "false")
+    })
   })
 
   describe("custom tags", () => {
@@ -617,8 +660,8 @@ describe("RecipeForm", () => {
       )
 
       const user = userEvent.setup()
-      const { container } = render(<RecipeForm />)
-      await fillRequiredFields(user, container)
+      render(<RecipeForm />)
+      await fillRequiredFields(user)
 
       await user.click(screen.getAllByText("Save Recipe")[0])
 
@@ -635,7 +678,7 @@ describe("RecipeForm", () => {
       })
     })
 
-    it("shows a spinner and 'Converting photo…' on the save button while a HEIC photo is processing", async () => {
+    it("shows a spinner and 'Processing photo…' on the save button while a HEIC photo is processing", async () => {
       mockIsHeic.mockResolvedValueOnce(true)
       let resolveHeicTo: (value: Blob) => void = () => {}
       mockHeicTo.mockReturnValueOnce(
@@ -651,7 +694,7 @@ describe("RecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       const convertingButtons = await screen.findAllByRole("button", {
-        name: /Converting photo…/,
+        name: /Processing photo…/,
       })
       expect(convertingButtons).toHaveLength(2)
       for (const button of convertingButtons) {
@@ -661,7 +704,7 @@ describe("RecipeForm", () => {
 
       resolveHeicTo(new Blob(["converted-jpeg"], { type: "image/jpeg" }))
       await waitFor(() => {
-        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+        expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
     })
   })

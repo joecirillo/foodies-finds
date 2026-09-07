@@ -26,6 +26,10 @@ vi.mock("heic-to", () => ({
   heicTo: vi.fn(),
 }))
 
+vi.mock("browser-image-compression", () => ({
+  default: vi.fn(),
+}))
+
 import { useRouter } from "next/navigation"
 import {
   updateRecipeAction,
@@ -33,6 +37,7 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { isHeic, heicTo } from "heic-to"
+import imageCompression from "browser-image-compression"
 
 const mockUseRouter = vi.mocked(useRouter)
 const mockUpdateRecipeAction = vi.mocked(updateRecipeAction)
@@ -40,6 +45,7 @@ const mockPresignRecipeImageUploadAction = vi.mocked(presignRecipeImageUploadAct
 const mockDeleteRecipeImageAction = vi.mocked(deleteRecipeImageAction)
 const mockIsHeic = vi.mocked(isHeic)
 const mockHeicTo = vi.mocked(heicTo)
+const mockImageCompression = vi.mocked(imageCompression)
 
 const baseRecipe: Recipe = {
   id: 1,
@@ -90,6 +96,9 @@ beforeEach(() => {
   mockDeleteRecipeImageAction.mockReset()
   mockIsHeic.mockReset().mockResolvedValue(false)
   mockHeicTo.mockReset()
+  mockImageCompression
+    .mockReset()
+    .mockImplementation(async (file) => new Blob([file], { type: "image/webp" }))
 
   vi.stubGlobal(
     "fetch",
@@ -410,7 +419,7 @@ describe("EditRecipeForm", () => {
 
       await waitFor(() => {
         expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
-          "image/jpeg",
+          "image/webp",
           expect.any(Number),
         )
       })
@@ -528,14 +537,14 @@ describe("EditRecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       await waitFor(() => {
-        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+        expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
 
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
         expect(mockPresignRecipeImageUploadAction).toHaveBeenCalledWith(
-          "image/jpeg",
+          "image/webp",
           convertedBlob.size,
         )
       })
@@ -668,6 +677,22 @@ describe("EditRecipeForm", () => {
     })
   })
 
+  describe("long text fields", () => {
+    it("renders ingredient notes as a scrollable textarea, not a single-line input", () => {
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const notes = screen.getByPlaceholderText("e.g. finely chopped (optional)")
+      expect(notes.tagName).toBe("TEXTAREA")
+    })
+
+    it("renders step tip as a scrollable textarea, not a single-line input", () => {
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const tip = screen.getByPlaceholderText("Tip (optional)")
+      expect(tip.tagName).toBe("TEXTAREA")
+    })
+  })
+
   describe("step drag reordering", () => {
     it("reorders steps when dragged from first to second position", () => {
       const recipe: Recipe = {
@@ -754,6 +779,27 @@ describe("EditRecipeForm", () => {
       ) as HTMLTextAreaElement[]
       expect(textareas[0].value).toBe("Boil the pasta")
       expect(textareas[1].value).toBe("Add the sauce")
+    })
+
+    it("only marks a step row draggable while its handle is pressed", () => {
+      const recipe: Recipe = {
+        ...baseRecipe,
+        steps: [{ stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null }],
+      }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      const stepRow = screen
+        .getByPlaceholderText("Describe this step…")
+        .closest("[data-step-index]") as HTMLElement
+      const handle = screen.getByLabelText("Drag to reorder step")
+
+      expect(stepRow).toHaveAttribute("draggable", "false")
+
+      fireEvent.mouseDown(handle)
+      expect(stepRow).toHaveAttribute("draggable", "true")
+
+      fireEvent.mouseUp(handle)
+      expect(stepRow).toHaveAttribute("draggable", "false")
     })
   })
 
@@ -858,7 +904,7 @@ describe("EditRecipeForm", () => {
       })
     })
 
-    it("shows a spinner and 'Converting photo…' on the save button while a HEIC photo is processing", async () => {
+    it("shows a spinner and 'Processing photo…' on the save button while a HEIC photo is processing", async () => {
       mockIsHeic.mockResolvedValueOnce(true)
       let resolveHeicTo: (value: Blob) => void = () => {}
       mockHeicTo.mockReturnValueOnce(
@@ -874,7 +920,7 @@ describe("EditRecipeForm", () => {
       fireEvent.change(input, { target: { files: [file] } })
 
       const convertingButtons = await screen.findAllByRole("button", {
-        name: /Converting photo…/,
+        name: /Processing photo…/,
       })
       expect(convertingButtons).toHaveLength(2)
       for (const button of convertingButtons) {
@@ -884,7 +930,7 @@ describe("EditRecipeForm", () => {
 
       resolveHeicTo(new Blob(["converted-jpeg"], { type: "image/jpeg" }))
       await waitFor(() => {
-        expect(screen.getByText("photo.jpg")).toBeInTheDocument()
+        expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
     })
   })

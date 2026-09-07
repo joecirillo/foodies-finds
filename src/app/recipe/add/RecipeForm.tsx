@@ -14,6 +14,7 @@ import {
   textareaClass,
 } from "@/components/recipe/RecipeFormFields"
 import { TagPicker } from "@/components/recipe/TagPicker"
+import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
@@ -65,7 +66,15 @@ export const RecipeForm = () => {
     },
   ])
 
-  const { steps, stepsListRef, addStep, removeStep, updateStep, dragHandlersFor } = useStepRows({
+  const {
+    steps,
+    stepsListRef,
+    addStep,
+    removeStep,
+    updateStep,
+    dragHandlersFor,
+    dragHandlePropsFor,
+  } = useStepRows({
     initialSteps: [{ key: 0, description: "", tip: "" }],
   })
 
@@ -385,7 +394,7 @@ export const RecipeForm = () => {
                 }}
               />
               {isProcessingImage ? (
-                "Converting photo…"
+                "Processing photo…"
               ) : imageFile ? (
                 <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
               ) : (
@@ -513,31 +522,23 @@ export const RecipeForm = () => {
                   </div>
                   <div>
                     <FieldLabel required>Unit</FieldLabel>
-                    <select
-                      value={ingredient.unitId ?? ""}
-                      onChange={(e) =>
-                        updateIngredient(index, {
-                          unitId: e.target.value ? parseInt(e.target.value) : null,
-                        })
-                      }
-                      className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                    >
-                      <option value="">—</option>
-                      {units.map((u) => (
-                        <option key={u.id} value={u.id}>
-                          {u.name} ({u.abbreviation})
-                        </option>
-                      ))}
-                    </select>
+                    <UnitPicker
+                      units={units}
+                      value={ingredient.unitId}
+                      onChange={(unitId) => updateIngredient(index, { unitId })}
+                      ariaInvalid={!!errors[`ingredient-${index}-unit`]}
+                    />
                     <FieldError message={errors[`ingredient-${index}-unit`]} />
                   </div>
                 </div>
                 <div>
                   <FieldLabel>Notes</FieldLabel>
-                  <Input
+                  <textarea
                     value={ingredient.notes}
                     onChange={(e) => updateIngredient(index, { notes: e.target.value })}
                     placeholder="e.g. finely chopped (optional)"
+                    rows={2}
+                    className={textareaClass}
                   />
                 </div>
               </div>
@@ -569,7 +570,6 @@ export const RecipeForm = () => {
                 key={step.key}
                 className="flex gap-3"
                 data-step-index={index}
-                draggable
                 {...dragHandlersFor(index)}
               >
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground mt-2.5">
@@ -582,6 +582,7 @@ export const RecipeForm = () => {
                       data-drag-handle
                       className="mt-1 cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
                       aria-label="Drag to reorder step"
+                      {...dragHandlePropsFor(index)}
                     >
                       <HugeiconsIcon icon={DragDropVerticalIcon} className="size-4" />
                     </button>
@@ -603,10 +604,12 @@ export const RecipeForm = () => {
                       </button>
                     )}
                   </div>
-                  <Input
+                  <textarea
                     value={step.tip}
                     onChange={(e) => updateStep(index, { tip: e.target.value })}
                     placeholder="Tip (optional)"
+                    rows={2}
+                    className={textareaClass}
                   />
                 </div>
               </div>
