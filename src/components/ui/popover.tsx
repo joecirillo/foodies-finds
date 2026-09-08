@@ -13,6 +13,20 @@ function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
 
+// base-ui only passes `preventScroll` when it focuses the popup container
+// itself; focusing any tabbable element inside (e.g. a search input) omits
+// it. Since the popup is portaled to the end of <body> and not yet
+// positioned, the browser's implicit scroll-into-view jumps to the top of
+// the page instead. We take over initial focus to always prevent that scroll.
+// https://github.com/mui/base-ui/issues/4520
+function focusWithoutScrolling(popup: HTMLElement) {
+  const target =
+    popup.querySelector<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    ) ?? popup
+  target.focus({ preventScroll: true })
+}
+
 function PopoverContent({
   className,
   align = "center",
@@ -25,6 +39,8 @@ function PopoverContent({
     PopoverPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset"
   >) {
+  const popupRef = React.useRef<HTMLDivElement>(null)
+
   return (
     <PopoverPrimitive.Portal>
       <PopoverPrimitive.Positioner
@@ -35,7 +51,12 @@ function PopoverContent({
         className="isolate z-50"
       >
         <PopoverPrimitive.Popup
+          ref={popupRef}
           data-slot="popover-content"
+          initialFocus={() => {
+            if (popupRef.current) focusWithoutScrolling(popupRef.current)
+            return false
+          }}
           className={cn(
             "z-50 flex w-72 origin-(--transform-origin) flex-col gap-4 rounded-2xl bg-popover p-4 text-sm text-popover-foreground shadow-2xl ring-1 ring-foreground/5 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=inline-end]:slide-in-from-left-2 data-[side=inline-start]:slide-in-from-right-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
