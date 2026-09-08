@@ -13,12 +13,7 @@ function PopoverTrigger({ ...props }: PopoverPrimitive.Trigger.Props) {
   return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
 }
 
-// base-ui only passes `preventScroll` when it focuses the popup container
-// itself; focusing any tabbable element inside (e.g. a search input) omits
-// it. Since the popup is portaled to the end of <body> and not yet
-// positioned, the browser's implicit scroll-into-view jumps to the top of
-// the page instead. We take over initial focus to always prevent that scroll.
-// https://github.com/mui/base-ui/issues/4520
+// Works around base-ui omitting preventScroll for this focus target: https://github.com/mui/base-ui/issues/4520
 function focusWithoutScrolling(popup: HTMLElement) {
   const target =
     popup.querySelector<HTMLElement>(

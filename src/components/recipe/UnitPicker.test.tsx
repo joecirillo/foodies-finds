@@ -67,10 +67,7 @@ describe("UnitPicker", () => {
     expect(onChange).toHaveBeenCalledWith(null)
   })
 
-  // Regression test for https://github.com/mui/base-ui/issues/4520: base-ui
-  // focuses the popup's first tabbable element without `preventScroll`,
-  // which scrolls the (portaled, not-yet-positioned) popup into view and
-  // jumps the page to the top on iOS Safari.
+  // Regression test for https://github.com/mui/base-ui/issues/4520
   it("focuses the search input without scrolling the page when opened", async () => {
     const user = userEvent.setup()
     const focusSpy = vi.spyOn(HTMLElement.prototype, "focus")
