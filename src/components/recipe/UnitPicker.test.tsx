@@ -66,4 +66,17 @@ describe("UnitPicker", () => {
 
     expect(onChange).toHaveBeenCalledWith(null)
   })
+
+  // Regression test for https://github.com/mui/base-ui/issues/4520
+  it("focuses the search input without scrolling the page when opened", async () => {
+    const user = userEvent.setup()
+    const focusSpy = vi.spyOn(HTMLElement.prototype, "focus")
+    render(<UnitPicker units={units} value={null} onChange={vi.fn()} />)
+
+    await user.click(screen.getByRole("button", { name: "—" }))
+
+    const input = await screen.findByPlaceholderText("Search units…")
+    expect(focusSpy).toHaveBeenCalledWith({ preventScroll: true })
+    expect(document.activeElement).toBe(input)
+  })
 })
