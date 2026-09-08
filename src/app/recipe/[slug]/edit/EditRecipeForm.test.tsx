@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
-import { render, screen, waitFor, fireEvent } from "@testing-library/react"
+import { render, screen, waitFor, fireEvent, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { EditRecipeForm } from "./EditRecipeForm"
 import type { Recipe } from "@/types/recipe"
@@ -111,6 +111,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals()
+  vi.useRealTimers()
 })
 
 describe("EditRecipeForm", () => {
@@ -277,6 +278,38 @@ describe("EditRecipeForm", () => {
       // updateRecipeAction already revalidates the destination path server-side,
       // so a client-side refresh here is unnecessary and previously raced the push.
       expect(mockRefresh).not.toHaveBeenCalled()
+    })
+
+    it("re-enables Save if navigation is still pending 5s after a successful save", async () => {
+      vi.useFakeTimers()
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      fireEvent.click(screen.getAllByText("Save Changes")[0])
+      await act(() => vi.advanceTimersByTimeAsync(0))
+
+      expect(mockPush).toHaveBeenCalledWith("/recipe/1")
+      expect(screen.getAllByText("Saving…")[0]).toBeInTheDocument()
+
+      await act(() => vi.advanceTimersByTimeAsync(5000))
+
+      expect(screen.getAllByText("Save Changes")[0]).toBeInTheDocument()
+    })
+
+    it("ignores a second Save click after the backstop re-enables the button", async () => {
+      vi.useFakeTimers()
+      mockUpdateRecipeAction.mockResolvedValue({ ok: true, id: 1 })
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      fireEvent.click(screen.getAllByText("Save Changes")[0])
+      await act(() => vi.advanceTimersByTimeAsync(5000))
+
+      expect(mockUpdateRecipeAction).toHaveBeenCalledTimes(1)
+
+      fireEvent.click(screen.getAllByText("Save Changes")[0])
+      await act(() => vi.advanceTimersByTimeAsync(0))
+
+      expect(mockUpdateRecipeAction).toHaveBeenCalledTimes(1)
     })
 
     it("shows the error message returned by the action on failure", async () => {

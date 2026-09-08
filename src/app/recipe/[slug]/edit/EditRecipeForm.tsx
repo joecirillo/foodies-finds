@@ -41,6 +41,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
   const mountedRef = useRef(true)
+  const hasSavedRef = useRef(false)
 
   const [name, setName] = useState(recipe.name)
   const [description, setDescription] = useState(recipe.description ?? "")
@@ -227,6 +228,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   }
 
   const handleSubmit = async () => {
+    // The backstop below re-enables Save if navigation to the recipe page is
+    // still pending 5s after a successful save, so a slow-but-fine navigation
+    // looks the same as a stalled one — this stops a second tap in that window
+    // from resubmitting (re-uploading the image, re-calling updateRecipeAction)
+    // against a form that's already on its way out.
+    if (hasSavedRef.current) return
     if (!validate()) return
     setIsSubmitting(true)
     setSubmitError(null)
@@ -291,6 +298,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       if (newImageKey && existingImageUrl) {
         deleteRecipeImageAction(existingImageUrl)
       }
+      hasSavedRef.current = true
       // updateRecipeAction already calls revalidatePath for this route server-side,
       // which Next.js propagates to the client automatically. Calling router.refresh()
       // here too raced the pending push transition and could drop the navigation
