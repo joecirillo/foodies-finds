@@ -40,6 +40,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const router = useRouter()
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
+  const mountedRef = useRef(true)
+  const hasSavedRef = useRef(false)
 
   const [name, setName] = useState(recipe.name)
   const [description, setDescription] = useState(recipe.description ?? "")
@@ -129,6 +131,17 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       .catch(() => {})
   }, [recipe.ingredients.length])
 
+  useEffect(() => {
+    // Strict Mode mounts, cleans up, and remounts every component once in dev to
+    // surface effect bugs — without resetting mountedRef here in the setup, that
+    // cleanup would leave it permanently false even though the component is still
+    // genuinely mounted, silently defeating the backstop below in development.
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
   const debounce = (key: string, fn: () => void, delay = 300) => {
     if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
     debounceTimers.current[key] = setTimeout(fn, delay)
@@ -215,6 +228,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   }
 
   const handleSubmit = async () => {
+    // The backstop below re-enables Save if navigation to the recipe page is
+    // still pending 5s after a successful save, so a slow-but-fine navigation
+    // looks the same as a stalled one — this stops a second tap in that window
+    // from resubmitting (re-uploading the image, re-calling updateRecipeAction)
+    // against a form that's already on its way out.
+    if (hasSavedRef.current) return
     if (!validate()) return
     setIsSubmitting(true)
     setSubmitError(null)
@@ -279,8 +298,18 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       if (newImageKey && existingImageUrl) {
         deleteRecipeImageAction(existingImageUrl)
       }
+      hasSavedRef.current = true
+      // updateRecipeAction already calls revalidatePath for this route server-side,
+      // which Next.js propagates to the client automatically. Calling router.refresh()
+      // here too raced the pending push transition and could drop the navigation
+      // entirely, leaving the edit form mounted despite the save having succeeded.
       router.push(`/recipe/${recipe.id}`)
-      router.refresh()
+      // router.push doesn't await the navigation, and this component normally
+      // unmounts once it lands — this is just a backstop against a stalled
+      // transition leaving the button spinning with nothing happening on screen.
+      setTimeout(() => {
+        if (mountedRef.current) setIsSubmitting(false)
+      }, 5000)
     } else {
       if (newImageKey) {
         deleteRecipeImageAction(newImageKey)

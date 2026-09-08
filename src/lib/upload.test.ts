@@ -14,6 +14,7 @@ import { isHeic, heicTo } from "heic-to"
 import imageCompression from "browser-image-compression"
 import {
   prepareImageFile,
+  putToPresignedUrl,
   IMAGE_TYPE_ERROR,
   IMAGE_CONVERSION_ERROR,
   IMAGE_TOO_LARGE_ERROR,
@@ -212,5 +213,51 @@ describe("prepareImageFile", () => {
       file,
       expect.objectContaining({ fileType: "image/jpeg" }),
     )
+  })
+})
+
+describe("putToPresignedUrl", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("resolves when the PUT succeeds", async () => {
+    const file = new File(["data"], "photo.jpg", { type: "image/jpeg" })
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true }))
+
+    await expect(putToPresignedUrl("https://example.com/upload", file)).resolves.toBeUndefined()
+  })
+
+  it("throws when the response is not ok", async () => {
+    const file = new File(["data"], "photo.jpg", { type: "image/jpeg" })
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+
+    await expect(putToPresignedUrl("https://example.com/upload", file)).rejects.toThrow(
+      "Image upload failed (500)",
+    )
+  })
+
+  it("aborts and rejects with a timeout error if the upload never settles", async () => {
+    vi.useFakeTimers()
+    const file = new File(["data"], "photo.jpg", { type: "image/jpeg" })
+    // Simulates the iOS Safari bug: a fetch carrying a File body that's suspended
+    // (never resolves or rejects on its own) once the tab is backgrounded.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((_url: string, options: RequestInit) => {
+        return new Promise((_resolve, reject) => {
+          options.signal?.addEventListener("abort", () => {
+            reject(new DOMException("Aborted", "AbortError"))
+          })
+        })
+      }),
+    )
+
+    const result = putToPresignedUrl("https://example.com/upload", file)
+    const assertion = expect(result).rejects.toThrow("Image upload timed out")
+
+    await vi.advanceTimersByTimeAsync(30_000)
+
+    await assertion
   })
 })

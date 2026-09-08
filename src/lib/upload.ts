@@ -1,14 +1,35 @@
+// iOS Safari can suspend an in-flight fetch carrying a Blob/File body — rather than
+// rejecting it — if the tab is backgrounded mid-request (screen lock, switching to
+// Photos, a notification banner). Without a hard deadline that promise never settles,
+// leaving callers stuck waiting forever. The abort fires once the timer's real elapsed
+// time is up, which happens as soon as the tab is foregrounded again even if it fired
+// while backgrounded, so this reliably unsticks the request instead of hanging forever.
+const UPLOAD_TIMEOUT_MS = 30_000
+
 // Runs in the browser: uploads the file bytes directly to R2 using a presigned URL,
 // bypassing the Next.js server entirely (the whole point of presigned uploads).
 export async function putToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
-  const res = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: { "Content-Type": file.type },
-    body: file,
-  })
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), UPLOAD_TIMEOUT_MS)
 
-  if (!res.ok) {
-    throw new Error(`Image upload failed (${res.status})`)
+  try {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      headers: { "Content-Type": file.type },
+      body: file,
+      signal: controller.signal,
+    })
+
+    if (!res.ok) {
+      throw new Error(`Image upload failed (${res.status})`)
+    }
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("Image upload timed out — please try again.")
+    }
+    throw err
+  } finally {
+    clearTimeout(timeout)
   }
 }
 
