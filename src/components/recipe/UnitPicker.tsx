@@ -39,8 +39,8 @@ export const UnitPicker = ({ units, value, onChange, ariaInvalid }: UnitPickerPr
         </span>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
-        {/* value="none-selected" stops cmdk auto-highlighting (and scrollIntoView-ing) the first item on open: https://github.com/pacocoursey/cmdk/issues/405 */}
-        <Command value="none-selected">
+        {/* defaultValue="none-selected" stops cmdk auto-highlighting (and scrollIntoView-ing) the first item on open: https://github.com/pacocoursey/cmdk/issues/405 */}
+        <Command defaultValue="none-selected">
           <CommandInput placeholder="Search units…" />
           <CommandList>
             <CommandEmpty>No units found.</CommandEmpty>
