@@ -115,7 +115,8 @@ const FilterPill = ({
         )}
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
-        <Command shouldFilter={false}>
+        {/* value="none-selected" stops cmdk auto-highlighting (and scrollIntoView-ing) the first item on open: https://github.com/pacocoursey/cmdk/issues/405 */}
+        <Command shouldFilter={false} value="none-selected">
           <CommandInput
             placeholder={`Search ${LABELS[filterKey]}...`}
             value={query}
