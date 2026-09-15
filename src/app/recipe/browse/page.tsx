@@ -51,7 +51,7 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
                   alt={recipe.name}
                   fill
                   sizes="(min-width: 1024px) 230px, (min-width: 768px) 165px, 33vw"
-                  className="object-contain"
+                  className="object-cover"
                 />
               </div>
               <div className="p-3">
