@@ -29,7 +29,7 @@ beforeEach(() => {
   mockHeicTo.mockReset()
   mockImageCompression
     .mockReset()
-    .mockImplementation(async (file) => new Blob([file], { type: "image/webp" }))
+    .mockImplementation(async (file) => new File([file], "photo.webp", { type: "image/webp" }))
 })
 
 afterEach(() => {
@@ -119,7 +119,9 @@ describe("prepareImageFile", () => {
 
   it("returns a too-large error when a compressed image still exceeds 5MB", async () => {
     const oversized = new Uint8Array(6 * 1024 * 1024)
-    mockImageCompression.mockResolvedValueOnce(new Blob([oversized], { type: "image/webp" }))
+    mockImageCompression.mockResolvedValueOnce(
+      new File([oversized], "photo.webp", { type: "image/webp" }),
+    )
     const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
 
     const result = await prepareImageFile(file)
@@ -138,7 +140,9 @@ describe("prepareImageFile", () => {
   })
 
   it("labels the output using whatever the browser actually encoded, not the request", async () => {
-    mockImageCompression.mockResolvedValueOnce(new Blob(["fake-png"], { type: "image/png" }))
+    mockImageCompression.mockResolvedValueOnce(
+      new File(["fake-png"], "photo.png", { type: "image/png" }),
+    )
     const file = new File(["fake-image"], "photo.jpg", { type: "image/jpeg" })
 
     const result = await prepareImageFile(file)

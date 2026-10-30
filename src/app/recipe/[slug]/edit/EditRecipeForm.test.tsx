@@ -98,7 +98,7 @@ beforeEach(() => {
   mockHeicTo.mockReset()
   mockImageCompression
     .mockReset()
-    .mockImplementation(async (file) => new Blob([file], { type: "image/webp" }))
+    .mockImplementation(async (file) => new File([file], "photo.webp", { type: "image/webp" }))
 
   vi.stubGlobal(
     "fetch",

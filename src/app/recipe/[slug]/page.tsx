@@ -154,25 +154,25 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
             {[...recipe.ingredients]
               .sort((a, b) => a.name.localeCompare(b.name))
               .map((ingredient, index) => (
-              <li
-                key={`${ingredient.id}-${index}`}
-                className="flex items-start gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"
-              >
-                <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary/60" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-base font-medium">{toTitleCase(ingredient.name)}</span>
-                  <span className="ml-1.5 text-base text-muted-foreground">
-                    {formatQuantity(
-                      ingredient.quantity,
-                      ingredient.abbreviation ?? ingredient.unitName,
+                <li
+                  key={`${ingredient.id}-${index}`}
+                  className="flex items-start gap-3 rounded-xl bg-card px-4 py-3 ring-1 ring-foreground/10"
+                >
+                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-primary/60" />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-base font-medium">{toTitleCase(ingredient.name)}</span>
+                    <span className="ml-1.5 text-base text-muted-foreground">
+                      {formatQuantity(
+                        ingredient.quantity,
+                        ingredient.abbreviation ?? ingredient.unitName,
+                      )}
+                    </span>
+                    {ingredient.notes && (
+                      <p className="mt-0.5 text-sm text-muted-foreground">{ingredient.notes}</p>
                     )}
-                  </span>
-                  {ingredient.notes && (
-                    <p className="mt-0.5 text-sm text-muted-foreground">{ingredient.notes}</p>
-                  )}
-                </div>
-              </li>
-            ))}
+                  </div>
+                </li>
+              ))}
           </ul>
         </section>
 

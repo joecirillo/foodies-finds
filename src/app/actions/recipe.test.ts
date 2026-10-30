@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
-import type { SaveRecipeRequest, EditRecipeRequest, PresignedImageUpload, Recipe } from "@/types/recipe"
+import type {
+  SaveRecipeRequest,
+  EditRecipeRequest,
+  PresignedImageUpload,
+  Recipe,
+} from "@/types/recipe"
 
 vi.mock("@/lib/api", () => ({
   addRecipe: vi.fn(),
