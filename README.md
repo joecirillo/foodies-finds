@@ -1,43 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Foodies Finds
 
-## Getting Started
+Mobile-first recipe webapp built with Next.js App Router, React, TypeScript, Tailwind CSS,
+and shadcn components. The sibling `recipe-api` repository runs the Hono/Drizzle backend
+on Cloudflare Workers, using Supabase Postgres through Hyperdrive and R2 for images.
 
-First, run the development server:
+## Local development
+
+Use Node.js 24 (`nvm use`) and pnpm 10.33.2, pinned in `package.json`.
+With Corepack installed, run `corepack enable` so `pnpm` uses that version.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install --frozen-lockfile
+cp .env.example .env.local
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Start `recipe-api` separately following its README, then open <http://localhost:3000>.
+The example targets the local Worker at <http://localhost:8787>. Set `API_KEY` to the
+same value as the backend's `USER_API_KEY`. Both variables are server-only; never
+prefix the API key with `NEXT_PUBLIC_` or commit `.env.local`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable                        | Purpose                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------- |
+| `API_URL`                       | Backend base URL, without a trailing slash                                       |
+| `API_KEY`                       | Backend user API key, sent as `X-Api-Key`                                        |
+| `VERCEL_PROJECT_PRODUCTION_URL` | Optional Vercel-provided hostname used for metadata; otherwise localhost is used |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+The browser uses Next.js actions and API routes for backend requests. Image uploads
+use a backend-generated presigned URL for a direct PUT to R2; the recipe stores the
+returned image key. See `AGENTS.md` for the shared API conventions.
 
-## Learn More
+## Commands and checks
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev           # development server
+pnpm lint
+pnpm format:check
+pnpm test          # one-shot Vitest + React Testing Library
+pnpm typecheck     # generate Next.js types, then tsc --noEmit
+pnpm build         # production build
+pnpm start         # serve a completed production build
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Use `pnpm test:watch` while developing and `pnpm exec prettier --write <files>` to
+format changed files. Pull requests and pushes to `main` run lint, formatting,
+tests, and type checks in GitHub Actions. These checks do not require production
+credentials. Production builds use Google Fonts and may require network access;
+pages that fetch recipe data also depend on backend configuration.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Coding agents
 
-## Claude Code Bot
+`AGENTS.md` contains the shared instructions for Codex and Claude Code. `CLAUDE.md`
+imports it. Preserve the generated Next.js guidance and consult the bundled docs in
+`node_modules/next/dist/docs/` when changing framework code.
 
-This repo runs Claude Code as a GitHub bot (see `.github/workflows/`):
+shadcn MCP is configured in `.mcp.json` for Claude Code and `.codex/config.toml` for
+Codex. Trust the project in Codex to load its project-scoped configuration; the MCP
+server's first launch may require npm network access.
 
-- Every PR gets an automatic review comment.
-- Mention `@claude <question>` in a PR or issue comment to get a response.
+The existing Claude GitHub bot reviews PRs automatically and responds to `@claude`
+mentions in issues and PR comments. Local Codex support does not change those workflows.
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The frontend is configured for Vercel. Supply server-side `API_URL` and `API_KEY`
+in the deployment environment; keep local development pointed at the local Worker.

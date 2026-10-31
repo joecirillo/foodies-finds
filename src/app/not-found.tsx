@@ -8,14 +8,9 @@ const NotFound = () => (
     <p className="text-6xl font-bold text-primary">404</p>
     <h1 className="mt-4 font-heading text-2xl font-semibold text-foreground">Page not found</h1>
     <p className="mt-3 text-base leading-relaxed text-muted-foreground">
-      We couldn't find what you were looking for. It may have been moved or deleted.
+      We couldn&apos;t find what you were looking for. It may have been moved or deleted.
     </p>
-    <Button
-      render={<Link href="/" />}
-      nativeButton={false}
-      size="lg"
-      className="mt-8 gap-2"
-    >
+    <Button render={<Link href="/" />} nativeButton={false} size="lg" className="mt-8 gap-2">
       <HugeiconsIcon icon={ArrowLeft02Icon} className="size-4" />
       Back to Home
     </Button>

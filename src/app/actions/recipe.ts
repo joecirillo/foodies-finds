@@ -29,7 +29,8 @@ export const presignRecipeImageUploadAction = async (
     console.log("Presigned upload URL created:", presigned.key)
     return { ok: true, ...presigned }
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Failed to prepare image upload. Please try again."
+    const message =
+      err instanceof Error ? err.message : "Failed to prepare image upload. Please try again."
     console.error("Failed to presign image upload:", message)
     return { ok: false, error: message }
   }
