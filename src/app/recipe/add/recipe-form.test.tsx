@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { RecipeForm } from "./RecipeForm"
+import { RecipeForm } from "./recipe-form"
 
 vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
@@ -127,14 +127,14 @@ describe("RecipeForm", () => {
       expect(screen.getByText("Cuisine is required", { selector: "li" })).toBeInTheDocument()
     })
 
-    it("shows an inline unit error when an ingredient has a name but no unit selected", async () => {
+    it("allows an ingredient without a unit", async () => {
       const user = userEvent.setup()
       render(<RecipeForm />)
 
       await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
       await user.click(screen.getAllByText("Save Recipe")[0])
 
-      expect(screen.getByText("Unit is required for flour", { selector: "p" })).toBeInTheDocument()
+      expect(screen.queryByText("Unit is required for flour")).not.toBeInTheDocument()
     })
 
     it("does not call addRecipeAction when validation fails", async () => {
@@ -707,5 +707,51 @@ describe("RecipeForm", () => {
         expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
     })
+  })
+})
+
+describe("optional ingredient measurements", () => {
+  it("preserves measured, quantity-only, unit-only and unmeasured rows on create", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 1, name: "gram", abbreviation: "g" }],
+    } as Response)
+    mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+    const user = userEvent.setup()
+    render(<RecipeForm />)
+    await fillRequiredFields(user)
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), { target: { value: "2" } })
+    for (const name of ["Salt", "Pepper", "Water"]) {
+      await user.click(screen.getByRole("button", { name: "Add Ingredient" }))
+      fireEvent.change(screen.getAllByPlaceholderText("Ingredient name").at(-1)!, {
+        target: { value: name },
+      })
+    }
+    fireEvent.change(screen.getByLabelText("Ingredient 2 quantity"), { target: { value: "3" } })
+    await user.click(screen.getAllByRole("button", { name: "—" })[1])
+    await user.click(await screen.findByRole("option", { name: "gram (g)" }))
+    await user.click(screen.getAllByText("Save Recipe")[0])
+    expect(mockAddRecipeAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [
+          { id: null, name: "Flour", quantity: 2, unitId: 1, notes: null },
+          { id: null, name: "Salt", quantity: 3, unitId: null, notes: null },
+          { id: null, name: "Pepper", quantity: null, unitId: 1, notes: null },
+          { id: null, name: "Water", quantity: null, unitId: null, notes: null },
+        ],
+      }),
+    )
+  })
+
+  it.each(["0", "-2"])("rejects quantity %s without dropping the ingredient", async (value) => {
+    const user = userEvent.setup()
+    render(<RecipeForm />)
+    fireEvent.change(screen.getByPlaceholderText("Ingredient name"), { target: { value: "Salt" } })
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), { target: { value } })
+    await user.click(screen.getAllByText("Save Recipe")[0])
+    expect(
+      screen.getByText("Quantity must be greater than zero", { selector: "p" }),
+    ).toBeInTheDocument()
+    expect(mockAddRecipeAction).not.toHaveBeenCalled()
   })
 })

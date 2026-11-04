@@ -1,7 +1,7 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getRecipe } from "@/lib/api"
-import { EditRecipeForm } from "./EditRecipeForm"
+import { EditRecipeForm } from "./edit-recipe-form"
 import type { Recipe } from "@/types/recipe"
 
 export const metadata: Metadata = {

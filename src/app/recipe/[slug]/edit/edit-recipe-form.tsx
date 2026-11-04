@@ -1,11 +1,16 @@
 "use client"
 
+import { useState, useRef, useEffect } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { HugeiconsIcon } from "@hugeicons/react"
 import {
-  addRecipeAction,
-  attachRecipeImageAction,
-  deleteRecipeImageAction,
-  presignRecipeImageUploadAction,
-} from "@/app/actions/recipe"
+  ArrowLeft02Icon,
+  PlusSignIcon,
+  Delete02Icon,
+  DragDropVerticalIcon,
+  Loading03Icon,
+} from "@hugeicons/core-free-icons"
 import { CuisinePicker } from "@/components/recipe/CuisinePicker"
 import {
   FieldError,
@@ -16,55 +21,72 @@ import {
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
+import { validateIngredients } from "@/lib/ingredient-validation"
 import { Input } from "@/components/ui/input"
+import {
+  updateRecipeAction,
+  presignRecipeImageUploadAction,
+  deleteRecipeImageAction,
+} from "@/app/actions/recipe"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
 import { useStepRows } from "@/hooks/useStepRows"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
-import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
-import type { EntityOption, IngredientRow, Unit } from "@/types/recipe"
-import {
-  ArrowLeft02Icon,
-  Delete02Icon,
-  DragDropVerticalIcon,
-  Loading03Icon,
-  PlusSignIcon,
-} from "@hugeicons/core-free-icons"
-import { HugeiconsIcon } from "@hugeicons/react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { diffRecipeForUpdate } from "@/lib/recipe-diff"
+import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
+import type { EntityOption, Recipe, SaveRecipeRequest, Unit, IngredientRow } from "@/types/recipe"
 
 type SearchResult = { id: number; name: string }
 
-export const RecipeForm = () => {
+export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const router = useRouter()
   const keyCounter = useRef(1)
   const nextKey = () => ++keyCounter.current
+  const mountedRef = useRef(true)
+  const hasSavedRef = useRef(false)
 
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [author, setAuthor] = useState("")
+  const [name, setName] = useState(recipe.name)
+  const [description, setDescription] = useState(recipe.description ?? "")
+  const [author, setAuthor] = useState(recipe.author ?? "")
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
   const [isProcessingImage, setIsProcessingImage] = useState(false)
-  const [preparationTime, setPreparationTime] = useState("")
-  const [cookingTime, setCookingTime] = useState("")
-  const [servings, setServings] = useState("")
-  const [calories, setCalories] = useState("")
+  const existingImageUrl = recipe.imageUrl ?? null
+  const [preparationTime, setPreparationTime] = useState(
+    recipe.preparationTime > 0 ? String(recipe.preparationTime) : "",
+  )
+  const [cookingTime, setCookingTime] = useState(
+    recipe.cookingTime > 0 ? String(recipe.cookingTime) : "",
+  )
+  const [servings, setServings] = useState(recipe.servings != null ? String(recipe.servings) : "")
+  const [calories, setCalories] = useState(recipe.calories != null ? String(recipe.calories) : "")
 
-  const [selectedCuisine, setSelectedCuisine] = useState<EntityOption | null>(null)
-  const [selectedTags, setSelectedTags] = useState<EntityOption[]>([])
+  const [selectedCuisine, setSelectedCuisine] = useState<EntityOption | null>(
+    recipe.cuisine ?? null,
+  )
+  const [selectedTags, setSelectedTags] = useState<EntityOption[]>(recipe.tags)
 
-  const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    {
-      key: 0,
-      name: "",
-      unitId: null,
-      quantity: 1,
-      notes: "",
-      searchResults: [],
-      dropdownOpen: false,
-    },
-  ])
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(
+    recipe.ingredients.length > 0
+      ? recipe.ingredients.map((ing, i) => ({
+          key: i,
+          name: ing.name,
+          unitId: ing.unitId,
+          quantity: ing.quantity,
+          notes: ing.notes ?? "",
+          searchResults: [],
+          dropdownOpen: false,
+        }))
+      : [
+          {
+            key: 0,
+            name: "",
+            unitId: null,
+            quantity: null,
+            notes: "",
+            searchResults: [],
+            dropdownOpen: false,
+          },
+        ],
+  )
 
   const {
     steps,
@@ -75,7 +97,16 @@ export const RecipeForm = () => {
     dragHandlersFor,
     dragHandlePropsFor,
   } = useStepRows({
-    initialSteps: [{ key: 0, description: "", tip: "" }],
+    initialSteps:
+      recipe.steps.length > 0
+        ? [...recipe.steps]
+            .sort((a, b) => a.stepNumber - b.stepNumber)
+            .map((s, i) => ({
+              key: i,
+              description: s.description,
+              tip: s.tip ?? "",
+            }))
+        : [{ key: 0, description: "", tip: "" }],
   })
 
   const [units, setUnits] = useState<Unit[]>([])
@@ -86,16 +117,30 @@ export const RecipeForm = () => {
   const { isBusy: isSaveBusy, label: saveLabel } = useSaveButtonState({
     isSubmitting,
     isProcessingImage,
-    idleLabel: "Save Recipe",
+    idleLabel: "Save Changes",
   })
 
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
+    // Steps get their own counter inside useStepRows, so this only needs to
+    // stay ahead of existing ingredient keys.
+    keyCounter.current = recipe.ingredients.length
     fetch("/api/units")
       .then((r) => r.json())
       .then((data: Unit[]) => setUnits(data))
       .catch(() => {})
+  }, [recipe.ingredients.length])
+
+  useEffect(() => {
+    // Strict Mode mounts, cleans up, and remounts every component once in dev to
+    // surface effect bugs — without resetting mountedRef here in the setup, that
+    // cleanup would leave it permanently false even though the component is still
+    // genuinely mounted, silently defeating the backstop below in development.
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
   }, [])
 
   const debounce = (key: string, fn: () => void, delay = 300) => {
@@ -132,7 +177,7 @@ export const RecipeForm = () => {
         key: nextKey(),
         name: "",
         unitId: null,
-        quantity: 1,
+        quantity: null,
         notes: "",
         searchResults: [],
         dropdownOpen: false,
@@ -157,22 +202,9 @@ export const RecipeForm = () => {
     if (cookingTime !== "" && (isNaN(cookTime) || cookTime < 0))
       newErrors.cookingTime = "Cooking time must be 0 or more"
 
-    const servingsNum = parseInt(servings)
-    if (!servings || isNaN(servingsNum) || servingsNum < 1)
-      newErrors.servings = "Servings is required"
-
     if (!selectedCuisine) newErrors.cuisine = "Cuisine is required"
 
-    const validIngredients = ingredients.filter(
-      (i) => i.name.trim() && i.quantity !== null && i.quantity > 0,
-    )
-    if (validIngredients.length === 0)
-      newErrors.ingredients = "At least one ingredient with a name and quantity is required"
-
-    ingredients.forEach((ing, i) => {
-      if (ing.name.trim() && ing.unitId === null)
-        newErrors[`ingredient-${i}-unit`] = "Unit is required for " + ing.name.trim()
-    })
+    Object.assign(newErrors, validateIngredients(ingredients))
 
     const validSteps = steps.filter((s) => s.description.trim())
     if (validSteps.length === 0)
@@ -193,13 +225,38 @@ export const RecipeForm = () => {
   }
 
   const handleSubmit = async () => {
+    // The backstop below re-enables Save if navigation to the recipe page is
+    // still pending 5s after a successful save, so a slow-but-fine navigation
+    // looks the same as a stalled one — this stops a second tap in that window
+    // from resubmitting (re-uploading the image, re-calling updateRecipeAction)
+    // against a form that's already on its way out.
+    if (hasSavedRef.current) return
     if (!validate()) return
     setIsSubmitting(true)
     setSubmitError(null)
 
-    // The image is attached to the recipe by name/id, so the recipe must exist first —
-    // upload happens as a follow-up step once addRecipeAction returns a real id.
-    const result = await addRecipeAction({
+    let newImageKey: string | null = null
+
+    if (imageFile) {
+      const presign = await presignRecipeImageUploadAction(imageFile.type, imageFile.size)
+      if (!presign.ok) {
+        setErrors((prev) => ({ ...prev, image: presign.error }))
+        setIsSubmitting(false)
+        return
+      }
+      try {
+        await putToPresignedUrl(presign.uploadUrl, imageFile)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to upload image"
+        console.error("Image upload to R2 failed:", err)
+        setErrors((prev) => ({ ...prev, image: message }))
+        setIsSubmitting(false)
+        return
+      }
+      newImageKey = presign.key
+    }
+
+    const nextPayload: SaveRecipeRequest = {
       name: toTitleCase(name.trim()),
       description: description.trim() || null,
       calories: calories ? parseInt(calories) : 0,
@@ -208,9 +265,9 @@ export const RecipeForm = () => {
       preparationTime: parseInt(preparationTime),
       cuisine: selectedCuisine,
       tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().replace(/\s+/g, "-") })),
-      author: author.trim() || "Anonymous",
+      author: author.trim() || null,
       ingredients: ingredients
-        .filter((i) => i.name.trim() && i.quantity !== null && i.quantity > 0)
+        .filter((i) => i.name.trim())
         .map((i) => ({
           id: null,
           name: toTitleCase(i.name.trim()),
@@ -225,47 +282,52 @@ export const RecipeForm = () => {
           description: toSentenceCase(s.description.trim()),
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
-      imageUrl: null,
-    })
+      imageUrl: newImageKey ?? existingImageUrl,
+    }
 
-    if (!result.ok) {
+    const result = await updateRecipeAction(
+      recipe.id as number,
+      diffRecipeForUpdate(recipe, nextPayload),
+    )
+
+    if (result.ok) {
+      // Replaced the image: the old one is now orphaned in R2, clean it up.
+      if (newImageKey && existingImageUrl) {
+        deleteRecipeImageAction(existingImageUrl)
+      }
+      hasSavedRef.current = true
+      // updateRecipeAction already calls revalidatePath for this route server-side,
+      // which Next.js propagates to the client automatically. Calling router.refresh()
+      // here too raced the pending push transition and could drop the navigation
+      // entirely, leaving the edit form mounted despite the save having succeeded.
+      router.push(`/recipe/${recipe.id}`)
+      // router.push doesn't await the navigation, and this component normally
+      // unmounts once it lands — this is just a backstop against a stalled
+      // transition leaving the button spinning with nothing happening on screen.
+      setTimeout(() => {
+        if (mountedRef.current) setIsSubmitting(false)
+      }, 5000)
+    } else {
+      if (newImageKey) {
+        deleteRecipeImageAction(newImageKey)
+      }
       setSubmitError(result.error)
       setIsSubmitting(false)
-      return
     }
-
-    if (imageFile) {
-      const presign = await presignRecipeImageUploadAction(imageFile.type, imageFile.size)
-      if (presign.ok) {
-        try {
-          await putToPresignedUrl(presign.uploadUrl, imageFile)
-          const attached = await attachRecipeImageAction(result.id, presign.key)
-          if (!attached.ok) deleteRecipeImageAction(presign.key)
-        } catch (err) {
-          console.error("Image upload to R2 failed:", err)
-          deleteRecipeImageAction(presign.key)
-        }
-      } else {
-        console.error("Failed to presign image upload:", presign.error)
-      }
-      // The recipe itself saved successfully regardless of image outcome — don't block
-      // navigation on it; the user can retry the photo from the edit page if it failed.
-    }
-
-    router.push(`/recipe/${result.id}`)
   }
 
   return (
     <div className="min-h-screen bg-background pb-10">
       <div className="sticky top-0 z-10 flex items-center justify-between bg-background/90 px-4 py-3 backdrop-blur-sm border-b border-border">
         <Button
-          render={<Link href="/recipe" />}
+          render={<Link href={`/recipe/${recipe.id}`} />}
           nativeButton={false}
           variant="ghost"
           size="icon-sm"
         >
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
+        <span className="font-heading text-base font-semibold">Edit Recipe</span>
         <Button onClick={handleSubmit} disabled={isSaveBusy} size="sm" className="gap-1.5">
           {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
           {saveLabel}
@@ -276,9 +338,6 @@ export const RecipeForm = () => {
         {/* Basic Info */}
         <section>
           <SectionHeading>Basic Info</SectionHeading>
-          <p className="mb-4 text-xs text-muted-foreground">
-            <span className="text-destructive">*</span> Required field
-          </p>
           <div className="space-y-4">
             <div id="field-name">
               <FieldLabel required>Name</FieldLabel>
@@ -337,16 +396,14 @@ export const RecipeForm = () => {
               />
               <FieldError message={errors.cookingTime} />
             </div>
-            <div id="field-servings">
-              <FieldLabel required>Servings</FieldLabel>
+            <div>
+              <FieldLabel>Servings</FieldLabel>
               <Input
                 type="number"
                 min={1}
                 value={servings}
                 onChange={(e) => setServings(e.target.value)}
-                aria-invalid={!!errors.servings}
               />
-              <FieldError message={errors.servings} />
             </div>
             <div>
               <FieldLabel>Calories (kcal)</FieldLabel>
@@ -364,6 +421,9 @@ export const RecipeForm = () => {
         <section id="field-image">
           <SectionHeading>Image</SectionHeading>
           <FieldLabel>Photo</FieldLabel>
+          {existingImageUrl && !imageFile && (
+            <p className="mb-2 text-xs text-muted-foreground truncate">Current photo attached</p>
+          )}
           <div className="flex items-center gap-3">
             <label className="flex-1 cursor-pointer rounded-xl border border-dashed border-input bg-input/20 px-4 py-3 text-sm text-muted-foreground hover:bg-input/40 transition-colors">
               <input
@@ -397,6 +457,8 @@ export const RecipeForm = () => {
                 "Processing photo…"
               ) : imageFile ? (
                 <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
+              ) : existingImageUrl ? (
+                "Tap to replace photo…"
               ) : (
                 "Tap to choose a photo…"
               )}
@@ -445,7 +507,7 @@ export const RecipeForm = () => {
 
         {/* Ingredients */}
         <section id="field-ingredients">
-          <SectionHeading required>
+          <SectionHeading>
             Ingredients
             {errors.ingredients && (
               <span className="ml-2 text-sm font-normal text-destructive">
@@ -505,8 +567,8 @@ export const RecipeForm = () => {
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <FieldLabel>Quantity</FieldLabel>
+                  <div id={`field-ingredient-${index}-quantity`}>
+                    <FieldLabel>Quantity (optional)</FieldLabel>
                     <Input
                       type="number"
                       min={0}
@@ -514,14 +576,17 @@ export const RecipeForm = () => {
                       value={ingredient.quantity ?? ""}
                       onChange={(e) =>
                         updateIngredient(index, {
-                          quantity: parseFloat(e.target.value) || null,
+                          quantity: e.target.value === "" ? null : e.target.valueAsNumber,
                         })
                       }
-                      placeholder="1"
+                      placeholder="Optional"
+                      aria-label={`Ingredient ${index + 1} quantity`}
+                      aria-invalid={!!errors[`ingredient-${index}-quantity`]}
                     />
+                    <FieldError message={errors[`ingredient-${index}-quantity`]} />
                   </div>
-                  <div>
-                    <FieldLabel required>Unit</FieldLabel>
+                  <div id={`field-ingredient-${index}-unit`}>
+                    <FieldLabel>Unit (optional)</FieldLabel>
                     <UnitPicker
                       units={units}
                       value={ingredient.unitId}
@@ -558,7 +623,7 @@ export const RecipeForm = () => {
 
         {/* Steps */}
         <section id="field-steps">
-          <SectionHeading required>
+          <SectionHeading>
             Steps
             {errors.steps && (
               <span className="ml-2 text-sm font-normal text-destructive">{errors.steps}</span>

@@ -16,8 +16,8 @@ describe("formatMinutes", () => {
 })
 
 describe("formatQuantity", () => {
-  it("returns an empty string for null quantity", () => {
-    expect(formatQuantity(null, "cup")).toBe("")
+  it("preserves a supplied unit without a quantity", () => {
+    expect(formatQuantity(null, "cup")).toBe("cup")
   })
 
   it("rounds to hundredths instead of tenths", () => {
