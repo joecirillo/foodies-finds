@@ -224,6 +224,39 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     return Object.keys(newErrors).length === 0
   }
 
+  const buildPayload = (imageUrl: string | null): SaveRecipeRequest => ({
+    name: toTitleCase(name.trim()),
+    description: description.trim() || null,
+    calories: calories ? parseInt(calories) : 0,
+    servings: servings ? parseInt(servings) : null,
+    cookingTime: cookingTime ? parseInt(cookingTime) : 0,
+    preparationTime: parseInt(preparationTime),
+    cuisine: selectedCuisine,
+    tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().replace(/\s+/g, "-") })),
+    author: author.trim() || null,
+    ingredients: ingredients
+      .filter((i) => i.name.trim())
+      .map((i) => ({
+        id: null,
+        name: toTitleCase(i.name.trim()),
+        unitId: i.unitId,
+        quantity: i.quantity,
+        notes: i.notes.trim() || null,
+      })),
+    steps: steps
+      .filter((s) => s.description.trim())
+      .map((s, idx) => ({
+        stepNumber: idx + 1,
+        description: toSentenceCase(s.description.trim()),
+        tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
+      })),
+    imageUrl,
+  })
+
+  const hasChanges =
+    imageFile !== undefined ||
+    Object.keys(diffRecipeForUpdate(recipe, buildPayload(existingImageUrl))).length > 0
+
   const handleSubmit = async () => {
     // The backstop below re-enables Save if navigation to the recipe page is
     // still pending 5s after a successful save, so a slow-but-fine navigation
@@ -256,38 +289,9 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
       newImageKey = presign.key
     }
 
-    const nextPayload: SaveRecipeRequest = {
-      name: toTitleCase(name.trim()),
-      description: description.trim() || null,
-      calories: calories ? parseInt(calories) : 0,
-      servings: servings ? parseInt(servings) : null,
-      cookingTime: cookingTime ? parseInt(cookingTime) : 0,
-      preparationTime: parseInt(preparationTime),
-      cuisine: selectedCuisine,
-      tags: selectedTags.map((tag) => ({ ...tag, name: tag.name.trim().replace(/\s+/g, "-") })),
-      author: author.trim() || null,
-      ingredients: ingredients
-        .filter((i) => i.name.trim())
-        .map((i) => ({
-          id: null,
-          name: toTitleCase(i.name.trim()),
-          unitId: i.unitId,
-          quantity: i.quantity,
-          notes: i.notes.trim() || null,
-        })),
-      steps: steps
-        .filter((s) => s.description.trim())
-        .map((s, idx) => ({
-          stepNumber: idx + 1,
-          description: toSentenceCase(s.description.trim()),
-          tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
-        })),
-      imageUrl: newImageKey ?? existingImageUrl,
-    }
-
     const result = await updateRecipeAction(
       recipe.id as number,
-      diffRecipeForUpdate(recipe, nextPayload),
+      diffRecipeForUpdate(recipe, buildPayload(newImageKey ?? existingImageUrl)),
     )
 
     if (result.ok) {
@@ -328,7 +332,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           <HugeiconsIcon icon={ArrowLeft02Icon} className="size-5" />
         </Button>
         <span className="font-heading text-base font-semibold">Edit Recipe</span>
-        <Button onClick={handleSubmit} disabled={isSaveBusy} size="sm" className="gap-1.5">
+        <Button
+          onClick={handleSubmit}
+          disabled={isSaveBusy || !hasChanges}
+          size="sm"
+          className="gap-1.5"
+        >
           {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
           {saveLabel}
         </Button>
@@ -707,7 +716,12 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
               {submitError}
             </div>
           )}
-          <Button onClick={handleSubmit} disabled={isSaveBusy} className="w-full gap-1.5" size="lg">
+          <Button
+            onClick={handleSubmit}
+            disabled={isSaveBusy || !hasChanges}
+            className="w-full gap-1.5"
+            size="lg"
+          >
             {isSaveBusy && <HugeiconsIcon icon={Loading03Icon} className="size-4 animate-spin" />}
             {saveLabel}
           </Button>
