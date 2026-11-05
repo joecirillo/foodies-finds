@@ -1,3 +1,5 @@
+import { isAnimatedGif } from "@/lib/is-animated-gif"
+
 // iOS Safari can suspend an in-flight fetch carrying a Blob/File body — rather than
 // rejecting it — if the tab is backgrounded mid-request (screen lock, switching to
 // Photos, a notification banner). Without a hard deadline that promise never settles,
@@ -150,6 +152,8 @@ const compressImage = async (file: File): Promise<File> => {
   return new File([compressed], name, { type: compressed.type })
 }
 
+const isAnimation = async (file: File) => file.type === "image/gif" && (await isAnimatedGif(file))
+
 export const prepareImageFile = async (file: File): Promise<PreparedImage> => {
   let workingFile: File
 
@@ -165,8 +169,8 @@ export const prepareImageFile = async (file: File): Promise<PreparedImage> => {
   }
 
   // A canvas-based re-encode would flatten an animated GIF to its first frame,
-  // so GIFs are uploaded as-is rather than run through compression.
-  if (workingFile.type !== "image/gif") {
+  // so animated GIFs are uploaded as-is rather than run through compression.
+  if (!(await isAnimation(workingFile))) {
     try {
       workingFile = await compressImage(workingFile)
     } catch (err) {
