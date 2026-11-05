@@ -47,6 +47,11 @@ const mockIsHeic = vi.mocked(isHeic)
 const mockHeicTo = vi.mocked(heicTo)
 const mockImageCompression = vi.mocked(imageCompression)
 
+const renameRecipe = () =>
+  fireEvent.change(screen.getByDisplayValue("Spaghetti Bolognese"), {
+    target: { value: "Spaghetti Ragu" },
+  })
+
 const baseRecipe: Recipe = {
   id: 1,
   name: "Spaghetti Bolognese",
@@ -190,6 +195,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={{ ...baseRecipe, ingredients: [] }} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       expect(
@@ -203,6 +209,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={{ ...baseRecipe, steps: [] }} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       expect(
@@ -222,15 +229,51 @@ describe("EditRecipeForm", () => {
   })
 
   describe("submission", () => {
-    it("sends an empty diff when nothing was changed", async () => {
+    it("disables both Save buttons until a field changes", () => {
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      const saveButtons = screen.getAllByRole("button", { name: "Save Changes" })
+      expect(saveButtons).toHaveLength(2)
+      saveButtons.forEach((button) => expect(button).toBeDisabled())
+
+      renameRecipe()
+
+      saveButtons.forEach((button) => expect(button).toBeEnabled())
+    })
+
+    it("disables Save again when a change is reverted", () => {
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      renameRecipe()
+      fireEvent.change(screen.getByDisplayValue("Spaghetti Ragu"), {
+        target: { value: "Spaghetti Bolognese" },
+      })
+
+      screen
+        .getAllByRole("button", { name: "Save Changes" })
+        .forEach((button) => expect(button).toBeDisabled())
+    })
+
+    it("treats whitespace-only edits as unchanged", () => {
+      render(<EditRecipeForm recipe={baseRecipe} />)
+
+      fireEvent.change(screen.getByDisplayValue("Spaghetti Bolognese"), {
+        target: { value: "  Spaghetti Bolognese  " },
+      })
+
+      expect(screen.getAllByRole("button", { name: "Save Changes" })[0]).toBeDisabled()
+    })
+
+    it("sends only the changed field", async () => {
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
-        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, {})
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, { name: "Spaghetti Ragu" })
       })
     })
 
@@ -270,6 +313,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
@@ -285,6 +329,7 @@ describe("EditRecipeForm", () => {
       mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       fireEvent.click(screen.getAllByText("Save Changes")[0])
       await act(() => vi.advanceTimersByTimeAsync(0))
 
@@ -301,6 +346,7 @@ describe("EditRecipeForm", () => {
       mockUpdateRecipeAction.mockResolvedValue({ ok: true, id: 1 })
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       fireEvent.click(screen.getAllByText("Save Changes")[0])
       await act(() => vi.advanceTimersByTimeAsync(5000))
 
@@ -320,6 +366,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => {
@@ -335,6 +382,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
@@ -548,6 +596,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
@@ -603,6 +652,7 @@ describe("EditRecipeForm", () => {
         }),
       ).toBeInTheDocument()
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
@@ -622,6 +672,7 @@ describe("EditRecipeForm", () => {
         await screen.findByText("File must be a jpeg, png, webp, or gif photo.", { selector: "p" }),
       ).toBeInTheDocument()
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       await waitFor(() => expect(mockUpdateRecipeAction).toHaveBeenCalled())
@@ -924,6 +975,7 @@ describe("EditRecipeForm", () => {
       const user = userEvent.setup()
       render(<EditRecipeForm recipe={baseRecipe} />)
 
+      renameRecipe()
       await user.click(screen.getAllByText("Save Changes")[0])
 
       const savingButtons = screen.getAllByRole("button", { name: /Saving…/ })

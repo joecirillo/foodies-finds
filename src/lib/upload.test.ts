@@ -20,6 +20,13 @@ import {
   IMAGE_TOO_LARGE_ERROR,
 } from "./upload"
 
+const hexBytes = (hex: string) =>
+  new Uint8Array((hex.match(/../g) ?? []).map((byte) => parseInt(byte, 16)))
+
+const STATIC_GIF_BYTES = hexBytes(
+  "474946383961" + "01000100000000" + "2c000000000100010000" + "02024401" + "00" + "3b",
+)
+
 const mockIsHeic = vi.mocked(isHeic)
 const mockHeicTo = vi.mocked(heicTo)
 const mockImageCompression = vi.mocked(imageCompression)
@@ -79,13 +86,22 @@ describe("prepareImageFile", () => {
     }
   })
 
-  it("skips compression for GIFs so animation isn't flattened", async () => {
+  it("skips compression for animated GIFs so animation isn't flattened", async () => {
     const file = new File(["fake-gif"], "photo.gif", { type: "image/gif" })
 
     const result = await prepareImageFile(file)
 
     expect(mockImageCompression).not.toHaveBeenCalled()
     expect(result).toEqual({ file })
+  })
+
+  it("compresses static GIFs like any other photo", async () => {
+    const file = new File([STATIC_GIF_BYTES], "photo.gif", { type: "image/gif" })
+
+    const result = await prepareImageFile(file)
+
+    expect(mockImageCompression).toHaveBeenCalledWith(file, expect.any(Object))
+    expect("file" in result && result.file.type).toBe("image/webp")
   })
 
   it("rejects unsupported file types without attempting compression", async () => {
@@ -129,7 +145,7 @@ describe("prepareImageFile", () => {
     expect(result).toEqual({ error: IMAGE_TOO_LARGE_ERROR })
   })
 
-  it("returns a too-large error for a GIF over 5MB since GIFs skip compression", async () => {
+  it("returns a too-large error for an animated GIF over 5MB since it skips compression", async () => {
     const oversized = new Uint8Array(6 * 1024 * 1024)
     const file = new File([oversized], "photo.gif", { type: "image/gif" })
 
