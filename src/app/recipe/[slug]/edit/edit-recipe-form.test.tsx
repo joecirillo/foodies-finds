@@ -2,7 +2,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen, waitFor, fireEvent, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { EditRecipeForm } from "./EditRecipeForm"
+import { EditRecipeForm } from "./edit-recipe-form"
 import type { Recipe } from "@/types/recipe"
 
 vi.mock("next/navigation", () => ({
@@ -193,7 +193,7 @@ describe("EditRecipeForm", () => {
       await user.click(screen.getAllByText("Save Changes")[0])
 
       expect(
-        screen.getByText("At least one ingredient with a name and quantity is required", {
+        screen.getByText("At least one named ingredient is required", {
           selector: "li",
         }),
       ).toBeInTheDocument()
@@ -968,5 +968,67 @@ describe("EditRecipeForm", () => {
         expect(screen.getByText("photo.webp")).toBeInTheDocument()
       })
     })
+  })
+})
+
+describe("optional ingredient measurements", () => {
+  it.each([
+    [null, null],
+    [2, null],
+    [null, 1],
+    [2, 1],
+  ])("preserves quantity %s and unit %s when an ingredient changes", async (quantity, unitId) => {
+    mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+    const user = userEvent.setup()
+    render(
+      <EditRecipeForm
+        recipe={{
+          ...baseRecipe,
+          ingredients: [{ ...baseRecipe.ingredients[0], quantity, unitId }],
+        }}
+      />,
+    )
+    fireEvent.change(screen.getByDisplayValue("Spaghetti"), { target: { value: "Pasta" } })
+    await user.click(screen.getAllByText("Save Changes")[0])
+    expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, {
+      ingredients: [{ id: null, name: "Pasta", quantity, unitId, notes: null }],
+    })
+  })
+
+  it("sends explicit nulls when existing measurements are cleared", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 1, name: "gram", abbreviation: "g" }],
+    } as Response)
+    mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+    const user = userEvent.setup()
+    render(
+      <EditRecipeForm
+        recipe={{
+          ...baseRecipe,
+          ingredients: [{ ...baseRecipe.ingredients[0], unitId: 1 }],
+        }}
+      />,
+    )
+    await user.clear(screen.getByLabelText("Ingredient 1 quantity"))
+    await user.click(await screen.findByRole("button", { name: "gram (g)" }))
+    await user.click(await screen.findByRole("option", { name: "—" }))
+    await user.click(screen.getAllByText("Save Changes")[0])
+    expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, {
+      ingredients: [{ id: null, name: "Spaghetti", quantity: null, unitId: null, notes: null }],
+    })
+  })
+
+  it.each([0, -2])("rejects supplied quantity %s", async (quantity) => {
+    const user = userEvent.setup()
+    render(<EditRecipeForm recipe={baseRecipe} />)
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), {
+      target: { value: String(quantity) },
+    })
+    await user.click(screen.getAllByText("Save Changes")[0])
+    expect(
+      screen.getByText("Quantity must be greater than zero", { selector: "p" }),
+    ).toBeInTheDocument()
+    expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
   })
 })

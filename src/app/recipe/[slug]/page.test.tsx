@@ -94,3 +94,25 @@ describe("RecipePage", () => {
     })
   })
 })
+
+it.each([
+  [null, null, "Zucchini"],
+  [2, null, "Zucchini2"],
+  [null, "c", "Zucchinic"],
+  [2, "c", "Zucchini2 c"],
+])(
+  "renders quantity %s and unit %s without invented measurements",
+  async (quantity, abbreviation, expected) => {
+    mockGetRecipe.mockResolvedValueOnce({
+      ...baseRecipe,
+      ingredients: [{ ...baseRecipe.ingredients[0], quantity, abbreviation, unitName: null }],
+    })
+    render(
+      await RecipePage({
+        params: Promise.resolve({ slug: "1" }),
+        searchParams: Promise.resolve({}),
+      }),
+    )
+    expect(screen.getByText("Zucchini").closest("li")?.textContent).toBe(expected)
+  },
+)
