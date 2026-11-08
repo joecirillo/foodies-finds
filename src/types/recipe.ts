@@ -73,7 +73,7 @@ export type IngredientRow = {
   key: number
   name: string
   unitId: number | null
-  quantity: number | null
+  quantityText: string
   notes: string
   searchResults: { id: number; name: string }[]
   dropdownOpen: boolean

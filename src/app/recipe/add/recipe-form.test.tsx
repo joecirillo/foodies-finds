@@ -754,4 +754,47 @@ describe("optional ingredient measurements", () => {
     ).toBeInTheDocument()
     expect(mockAddRecipeAction).not.toHaveBeenCalled()
   })
+
+  it.each([
+    ["1/2", 0.5],
+    ["1 1/2", 1.5],
+    ["½", 0.5],
+    ["0.25", 0.25],
+  ])("saves a typed quantity of %j as %s", async (value, quantity) => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => [{ id: 1, name: "gram", abbreviation: "g" }],
+    } as Response)
+    mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+    const user = userEvent.setup()
+    render(<RecipeForm />)
+    await fillRequiredFields(user)
+    await user.type(screen.getByLabelText("Ingredient 1 quantity"), value)
+    await user.click(screen.getAllByText("Save Recipe")[0])
+    expect(mockAddRecipeAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ingredients: [{ id: null, name: "Flour", quantity, unitId: 1, notes: null }],
+      }),
+    )
+  })
+
+  it("keeps unreadable quantity text and blocks saving with an error", async () => {
+    const user = userEvent.setup()
+    render(<RecipeForm />)
+    fireEvent.change(screen.getByPlaceholderText("Ingredient name"), { target: { value: "Salt" } })
+    await user.type(screen.getByLabelText("Ingredient 1 quantity"), "a pinch")
+    await user.click(screen.getAllByText("Save Recipe")[0])
+    expect(screen.getByLabelText("Ingredient 1 quantity")).toHaveValue("a pinch")
+    expect(
+      screen.getByText("Enter a number like 2, 0.5 or 1 1/2", { selector: "p" }),
+    ).toBeInTheDocument()
+    expect(mockAddRecipeAction).not.toHaveBeenCalled()
+  })
+
+  it("uses a plain text field because numeric keypads have no fraction slash", () => {
+    render(<RecipeForm />)
+    const input = screen.getByLabelText("Ingredient 1 quantity")
+    expect(input).toHaveAttribute("type", "text")
+    expect(input).not.toHaveAttribute("inputmode")
+  })
 })

@@ -17,6 +17,7 @@ import { TagPicker } from "@/components/recipe/TagPicker"
 import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
 import { validateIngredients } from "@/lib/ingredient-validation"
+import { parseQuantity } from "@/lib/parse-quantity"
 import { Input } from "@/components/ui/input"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
 import { useStepRows } from "@/hooks/useStepRows"
@@ -60,7 +61,7 @@ export const RecipeForm = () => {
       key: 0,
       name: "",
       unitId: null,
-      quantity: null,
+      quantityText: "",
       notes: "",
       searchResults: [],
       dropdownOpen: false,
@@ -133,7 +134,7 @@ export const RecipeForm = () => {
         key: nextKey(),
         name: "",
         unitId: null,
-        quantity: null,
+        quantityText: "",
         notes: "",
         searchResults: [],
         dropdownOpen: false,
@@ -207,7 +208,7 @@ export const RecipeForm = () => {
           id: null,
           name: toTitleCase(i.name.trim()),
           unitId: i.unitId,
-          quantity: i.quantity,
+          quantity: parseQuantity(i.quantityText),
           notes: i.notes.trim() || null,
         })),
       steps: steps
@@ -500,16 +501,11 @@ export const RecipeForm = () => {
                   <div id={`field-ingredient-${index}-quantity`}>
                     <FieldLabel>Quantity (optional)</FieldLabel>
                     <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={ingredient.quantity ?? ""}
-                      onChange={(e) =>
-                        updateIngredient(index, {
-                          quantity: e.target.value === "" ? null : e.target.valueAsNumber,
-                        })
-                      }
-                      placeholder="Optional"
+                      type="text"
+                      autoComplete="off"
+                      value={ingredient.quantityText}
+                      onChange={(e) => updateIngredient(index, { quantityText: e.target.value })}
+                      placeholder="e.g. 1 1/2"
                       aria-label={`Ingredient ${index + 1} quantity`}
                       aria-invalid={!!errors[`ingredient-${index}-quantity`]}
                     />

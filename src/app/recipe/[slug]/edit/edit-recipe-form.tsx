@@ -22,6 +22,7 @@ import { TagPicker } from "@/components/recipe/TagPicker"
 import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
 import { validateIngredients } from "@/lib/ingredient-validation"
+import { formatQuantityInput, parseQuantity } from "@/lib/parse-quantity"
 import { Input } from "@/components/ui/input"
 import {
   updateRecipeAction,
@@ -70,7 +71,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
           key: i,
           name: ing.name,
           unitId: ing.unitId,
-          quantity: ing.quantity,
+          quantityText: formatQuantityInput(ing.quantity),
           notes: ing.notes ?? "",
           searchResults: [],
           dropdownOpen: false,
@@ -80,7 +81,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
             key: 0,
             name: "",
             unitId: null,
-            quantity: null,
+            quantityText: "",
             notes: "",
             searchResults: [],
             dropdownOpen: false,
@@ -177,7 +178,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         key: nextKey(),
         name: "",
         unitId: null,
-        quantity: null,
+        quantityText: "",
         notes: "",
         searchResults: [],
         dropdownOpen: false,
@@ -240,7 +241,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
         id: null,
         name: toTitleCase(i.name.trim()),
         unitId: i.unitId,
-        quantity: i.quantity,
+        quantity: parseQuantity(i.quantityText),
         notes: i.notes.trim() || null,
       })),
     steps: steps
@@ -579,16 +580,11 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                   <div id={`field-ingredient-${index}-quantity`}>
                     <FieldLabel>Quantity (optional)</FieldLabel>
                     <Input
-                      type="number"
-                      min={0}
-                      step="any"
-                      value={ingredient.quantity ?? ""}
-                      onChange={(e) =>
-                        updateIngredient(index, {
-                          quantity: e.target.value === "" ? null : e.target.valueAsNumber,
-                        })
-                      }
-                      placeholder="Optional"
+                      type="text"
+                      autoComplete="off"
+                      value={ingredient.quantityText}
+                      onChange={(e) => updateIngredient(index, { quantityText: e.target.value })}
+                      placeholder="e.g. 1 1/2"
                       aria-label={`Ingredient ${index + 1} quantity`}
                       aria-invalid={!!errors[`ingredient-${index}-quantity`]}
                     />

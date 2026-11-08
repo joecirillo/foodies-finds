@@ -1083,4 +1083,48 @@ describe("optional ingredient measurements", () => {
     ).toBeInTheDocument()
     expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
   })
+
+  it("shows a stored fractional quantity and keeps Save disabled until it changes", () => {
+    render(
+      <EditRecipeForm
+        recipe={{ ...baseRecipe, ingredients: [{ ...baseRecipe.ingredients[0], quantity: 0.5 }] }}
+      />,
+    )
+    expect(screen.getByLabelText("Ingredient 1 quantity")).toHaveValue("0.5")
+    expect(screen.getAllByRole("button", { name: "Save Changes" })[0]).toBeDisabled()
+  })
+
+  it("treats a fraction equal to the stored quantity as unchanged", () => {
+    render(
+      <EditRecipeForm
+        recipe={{ ...baseRecipe, ingredients: [{ ...baseRecipe.ingredients[0], quantity: 0.5 }] }}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), { target: { value: "1/2" } })
+    expect(screen.getAllByRole("button", { name: "Save Changes" })[0]).toBeDisabled()
+  })
+
+  it("sends a typed mixed number as a decimal quantity", async () => {
+    mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+    const user = userEvent.setup()
+    render(<EditRecipeForm recipe={baseRecipe} />)
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), {
+      target: { value: "1 1/2" },
+    })
+    await user.click(screen.getAllByText("Save Changes")[0])
+    expect(mockUpdateRecipeAction).toHaveBeenCalledWith(1, {
+      ingredients: [{ id: null, name: "Spaghetti", quantity: 1.5, unitId: null, notes: null }],
+    })
+  })
+
+  it("blocks saving an unreadable quantity instead of dropping it", async () => {
+    const user = userEvent.setup()
+    render(<EditRecipeForm recipe={baseRecipe} />)
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), { target: { value: "abc" } })
+    await user.click(screen.getAllByText("Save Changes")[0])
+    expect(
+      screen.getByText("Enter a number like 2, 0.5 or 1 1/2", { selector: "p" }),
+    ).toBeInTheDocument()
+    expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
+  })
 })
