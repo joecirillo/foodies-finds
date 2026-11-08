@@ -6,7 +6,6 @@ describe("parseQuantity", () => {
     ["2", 2],
     ["0.5", 0.5],
     [".5", 0.5],
-    ["1,5", 1.5],
     ["1/2", 0.5],
     ["1 / 2", 0.5],
     ["1 1/2", 1.5],
@@ -18,6 +17,8 @@ describe("parseQuantity", () => {
     ["1/3", 0.33],
     ["  3  ", 3],
     ["-2", -2],
+    ["-1/2", -0.5],
+    ["-1 1/2", -1.5],
   ])("parses %j as %s", (text, expected) => {
     expect(parseQuantity(text)).toBe(expected)
   })
@@ -26,7 +27,7 @@ describe("parseQuantity", () => {
     expect(parseQuantity(text)).toBeNull()
   })
 
-  it.each(["abc", "1/0", "1 1/0", "2 cups", "1..2", "--1", "1/2/3", "a pinch"])(
+  it.each(["abc", "1/0", "1 1/0", "2 cups", "1..2", "--1", "1/2/3", "a pinch", "1,5", "1,500"])(
     "reports %j as unparseable",
     (text) => {
       expect(parseQuantity(text)).toBeNaN()

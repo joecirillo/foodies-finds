@@ -256,6 +256,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
 
   const hasChanges =
     imageFile !== undefined ||
+    Object.keys(validateIngredients(ingredients)).length > 0 ||
     Object.keys(diffRecipeForUpdate(recipe, buildPayload(existingImageUrl))).length > 0
 
   const handleSubmit = async () => {
@@ -582,6 +583,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                     <Input
                       type="text"
                       autoComplete="off"
+                      autoCapitalize="off"
                       value={ingredient.quantityText}
                       onChange={(e) => updateIngredient(index, { quantityText: e.target.value })}
                       placeholder="e.g. 1 1/2"

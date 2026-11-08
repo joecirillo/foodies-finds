@@ -1127,4 +1127,23 @@ describe("optional ingredient measurements", () => {
     ).toBeInTheDocument()
     expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
   })
+
+  it("enables Save and shows the error for unreadable text on an unmeasured ingredient", async () => {
+    const user = userEvent.setup()
+    render(
+      <EditRecipeForm
+        recipe={{ ...baseRecipe, ingredients: [{ ...baseRecipe.ingredients[0], quantity: null }] }}
+      />,
+    )
+    fireEvent.change(screen.getByLabelText("Ingredient 1 quantity"), {
+      target: { value: "a pinch" },
+    })
+    const save = screen.getAllByRole("button", { name: "Save Changes" })[0]
+    expect(save).toBeEnabled()
+    await user.click(save)
+    expect(
+      screen.getByText("Enter a number like 2, 0.5 or 1 1/2", { selector: "p" }),
+    ).toBeInTheDocument()
+    expect(mockUpdateRecipeAction).not.toHaveBeenCalled()
+  })
 })

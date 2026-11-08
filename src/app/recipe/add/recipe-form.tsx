@@ -503,6 +503,7 @@ export const RecipeForm = () => {
                     <Input
                       type="text"
                       autoComplete="off"
+                      autoCapitalize="off"
                       value={ingredient.quantityText}
                       onChange={(e) => updateIngredient(index, { quantityText: e.target.value })}
                       placeholder="e.g. 1 1/2"

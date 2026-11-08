@@ -1,11 +1,14 @@
 import { parseQuantity } from "@/lib/parse-quantity"
 import type { IngredientRow } from "@/types/recipe"
 
+const MAX_STORED_QUANTITY = 999_999.99
+
 const quantityError = (quantityText: string) => {
   const quantity = parseQuantity(quantityText)
   if (quantity === null) return null
   if (Number.isNaN(quantity)) return "Enter a number like 2, 0.5 or 1 1/2"
   if (quantity <= 0) return "Quantity must be greater than zero"
+  if (quantity > MAX_STORED_QUANTITY) return "Quantity must be less than 1,000,000"
   return null
 }
 

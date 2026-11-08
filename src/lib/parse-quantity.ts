@@ -17,11 +17,9 @@ const UNICODE_FRACTIONS: Record<string, string> = {
 }
 
 const DECIMAL = /^(-?(?:\d+(?:\.\d*)?|\.\d+))$/
-const FRACTION = /^(\d+)\/(\d+)$/
-const MIXED_NUMBER = /^(\d+)[\s-]+(\d+)\/(\d+)$/
+const FRACTION = /^(-?\d+)\/(\d+)$/
+const MIXED_NUMBER = /^(-?)(\d+)[\s-]+(\d+)\/(\d+)$/
 
-// Stored as numeric(8, 2) by recipe-api, so rounding here keeps the edit form's
-// change detection in step with what a reload will return.
 const roundToStoredPrecision = (value: number) => Math.round(value * 100) / 100
 
 const normalize = (text: string) =>
@@ -29,7 +27,6 @@ const normalize = (text: string) =>
     .trim()
     .replace(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/g, (glyph) => ` ${UNICODE_FRACTIONS[glyph]}`)
     .replace(/⁄/g, "/")
-    .replace(/,/g, ".")
     .replace(/\s*\/\s*/g, "/")
     .trim()
 
@@ -47,7 +44,10 @@ export const parseQuantity = (text: string): number | null => {
   if (fraction) return roundToStoredPrecision(divide(fraction[1], fraction[2]))
 
   const mixed = MIXED_NUMBER.exec(normalized)
-  if (mixed) return roundToStoredPrecision(Number(mixed[1]) + divide(mixed[2], mixed[3]))
+  if (mixed) {
+    const sign = mixed[1] ? -1 : 1
+    return roundToStoredPrecision(sign * (Number(mixed[2]) + divide(mixed[3], mixed[4])))
+  }
 
   return NaN
 }

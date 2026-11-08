@@ -8,6 +8,7 @@ describe("validateIngredients", () => {
     ["", 1],
     ["1 1/2", 1],
     ["½", null],
+    ["999999.99", null],
   ])("accepts quantity %j and unit %s", (quantityText, unitId) => {
     expect(validateIngredients([{ name: "Salt", quantityText, unitId }])).toEqual({})
   })
@@ -18,6 +19,8 @@ describe("validateIngredients", () => {
     ["0", "Quantity must be greater than zero"],
     ["-2", "Quantity must be greater than zero"],
     ["0.001", "Quantity must be greater than zero"],
+    ["-1/2", "Quantity must be greater than zero"],
+    ["1000000", "Quantity must be less than 1,000,000"],
   ])("rejects supplied quantity %j even beside a valid row", (quantityText, message) => {
     expect(
       validateIngredients([
