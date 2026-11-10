@@ -9,9 +9,15 @@ import {
   deleteRecipeImage,
   importRecipeFromUrl,
   RECIPES_LIST_TAG,
+  isApiError,
   type ApiError,
 } from "@/lib/api"
-import { UNEXPECTED_IMPORT_MESSAGE } from "@/lib/recipe-import/import-messages"
+import { isImportErrorCode } from "@/lib/recipe-import/import-error-codes"
+import {
+  INVALID_IMPORT_URL_MESSAGE,
+  RATE_LIMITED_IMPORT_MESSAGE,
+  UNEXPECTED_IMPORT_MESSAGE,
+} from "@/lib/recipe-import/import-messages"
 import { ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR } from "@/lib/upload"
 import type {
   SaveRecipeRequest,
@@ -126,10 +132,6 @@ export const updateRecipeAction = async (
   }
 }
 
-const INVALID_IMPORT_URL_MESSAGE = "Enter a full recipe link that starts with https://"
-
-const RATE_LIMITED_IMPORT_MESSAGE =
-  "Too many imports right now. Please wait a minute and try again."
 const STATUSES_WITH_PRIVATE_MESSAGES = new Set(["401", "403"])
 
 const parseHttpsUrl = (value: string) => {
@@ -144,7 +146,8 @@ const parseHttpsUrl = (value: string) => {
 const hasUserFacingMessage = (err: ApiError) =>
   !!err.code && Number(err.code) < 500 && !STATUSES_WITH_PRIVATE_MESSAGES.has(err.code)
 
-const importFailureMessage = (err: ApiError) => {
+const importFailureMessage = (err: unknown) => {
+  if (!isApiError(err)) return UNEXPECTED_IMPORT_MESSAGE
   if (err.code === "429") return RATE_LIMITED_IMPORT_MESSAGE
   return hasUserFacingMessage(err) ? err.message : UNEXPECTED_IMPORT_MESSAGE
 }
@@ -163,19 +166,19 @@ export const importRecipeFromUrlAction = async (url: string): Promise<ImportReci
     console.log("Recipe preview imported from:", host)
     return { ok: true, preview }
   } catch (err) {
-    const apiErr = err as ApiError
+    const apiErr = isApiError(err) ? err : null
     console.error(
       "Failed to import recipe preview from:",
       host,
       "code:",
-      apiErr.code,
-      apiErr.errorCode,
-      apiErr.message,
+      apiErr?.code,
+      apiErr?.errorCode,
+      apiErr?.message ?? err,
     )
     return {
       ok: false,
-      error: importFailureMessage(apiErr),
-      code: apiErr.errorCode as ImportErrorCode | undefined,
+      error: importFailureMessage(err),
+      code: isImportErrorCode(apiErr?.errorCode) ? apiErr.errorCode : undefined,
     }
   }
 }

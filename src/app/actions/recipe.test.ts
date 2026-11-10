@@ -7,7 +7,8 @@ import type {
   RecipeImportPreview,
 } from "@/types/recipe"
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  isApiError: (await importOriginal<typeof import("@/lib/api")>()).isApiError,
   addRecipe: vi.fn(),
   updateRecipe: vi.fn(),
   updateRecipeImage: vi.fn(),
@@ -375,6 +376,14 @@ describe("importRecipeFromUrlAction", () => {
     })
   })
 
+  it("drops an error code that is not part of the import contract", async () => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(apiError("400", "Odd failure", "SOMETHING_NEW"))
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toEqual({ ok: false, error: "Odd failure", code: undefined })
+  })
+
   it("logs only the hostname, not the full submitted url", async () => {
     const log = vi.spyOn(console, "log").mockImplementation(() => {})
     const error = vi.spyOn(console, "error").mockImplementation(() => {})
@@ -395,6 +404,8 @@ describe("importRecipeFromUrlAction", () => {
     ["authorization failures", apiError("401", "Invalid API key")],
     ["forbidden responses", apiError("403", "Forbidden")],
     ["network failures", new Error("fetch failed")],
+    ["a thrown null", null],
+    ["a thrown string", "boom"],
   ])("hides details of %s", async (_, err) => {
     mockImportRecipeFromUrl.mockRejectedValueOnce(err)
 

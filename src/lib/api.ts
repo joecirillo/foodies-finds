@@ -14,6 +14,9 @@ import type {
 
 export type ApiError = Error & { code: string; errorCode?: string }
 
+export const isApiError = (value: unknown): value is ApiError =>
+  value instanceof Error && typeof (value as Partial<ApiError>).code === "string"
+
 // Backend errors use the envelope `{ message, status, ... }` (see recipe-api's
 // ErrorResponse). Falls back to a status-only message when the body isn't JSON or
 // has no `message`, so callers never see a raw parse error in its place.
