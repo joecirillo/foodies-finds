@@ -30,6 +30,7 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
+import { useScrollToField } from "@/hooks/use-scroll-to-field"
 import { useStepRows } from "@/hooks/useStepRows"
 import { isOwnImage } from "@/lib/image-hosts"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
@@ -191,6 +192,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setIngredients((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const scrollToField = useScrollToField()
+
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
@@ -215,13 +218,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setErrors(newErrors)
 
     const firstKey = Object.keys(newErrors)[0]
-    if (firstKey) {
-      setTimeout(() => {
-        document
-          .getElementById(`field-${firstKey}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }, 50)
-    }
+    if (firstKey) scrollToField(firstKey)
 
     return Object.keys(newErrors).length === 0
   }

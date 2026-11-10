@@ -22,6 +22,7 @@ import { validateRecipeForm } from "@/lib/recipe-form-validation"
 import { parseQuantity } from "@/lib/parse-quantity"
 import { Input } from "@/components/ui/input"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
+import { useScrollToField } from "@/hooks/use-scroll-to-field"
 import { useStepRows } from "@/hooks/useStepRows"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
@@ -119,6 +120,7 @@ export const RecipeForm = ({
     onDirtyChange?.(isDirty)
   }, [isDirty, onDirtyChange])
 
+  const scrollToField = useScrollToField()
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
@@ -187,13 +189,7 @@ export const RecipeForm = ({
     setErrors(newErrors)
 
     const firstKey = Object.keys(newErrors)[0]
-    if (firstKey) {
-      setTimeout(() => {
-        document
-          .getElementById(`field-${firstKey}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }, 50)
-    }
+    if (firstKey) scrollToField(firstKey)
 
     return Object.keys(newErrors).length === 0
   }
