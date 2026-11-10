@@ -25,7 +25,7 @@ type ImportedDraft = {
 export const AddRecipe = () => {
   const [url, setUrl] = useState("")
   const [draft, setDraft] = useState<ImportedDraft | null>(null)
-  const [formKey, setFormKey] = useState(0)
+  const [formMountKey, setFormMountKey] = useState(0)
   const [pendingPreview, setPendingPreview] = useState<RecipeImportPreview | null>(null)
   const isDirtyRef = useRef(false)
 
@@ -33,28 +33,26 @@ export const AddRecipe = () => {
     isDirtyRef.current = isDirty
   }, [])
 
-  // RecipeForm seeds its state from initialValues only on mount, so an accepted import
-  // remounts it with a new key instead of trying to sync every field from props.
-  const applyPreview = (preview: RecipeImportPreview) => {
+  const remountFormWithPreview = (preview: RecipeImportPreview) => {
     setDraft({
       values: previewToRecipeFormValues(preview),
       context: { source: preview.source, warnings: preview.warnings },
     })
-    setFormKey((key) => key + 1)
+    setFormMountKey((key) => key + 1)
     setPendingPreview(null)
   }
 
   const { status, error, importFromUrl } = useRecipeImport({
     onPreview: (preview) => {
       if (isDirtyRef.current) setPendingPreview(preview)
-      else applyPreview(preview)
+      else remountFormWithPreview(preview)
     },
   })
 
   return (
     <>
       <RecipeForm
-        key={formKey}
+        key={formMountKey}
         initialValues={draft?.values}
         showInitialErrors={!!draft}
         onDirtyChange={handleDirtyChange}
@@ -88,7 +86,7 @@ export const AddRecipe = () => {
             <Button variant="outline" onClick={() => setPendingPreview(null)}>
               Keep editing
             </Button>
-            <Button onClick={() => pendingPreview && applyPreview(pendingPreview)}>
+            <Button onClick={() => pendingPreview && remountFormWithPreview(pendingPreview)}>
               Replace draft
             </Button>
           </DialogFooter>

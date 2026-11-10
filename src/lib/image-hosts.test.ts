@@ -1,5 +1,19 @@
 import { describe, it, expect } from "vitest"
-import { isOwnImage } from "./image-hosts"
+import { isOwnImage, recipeImageProps } from "./image-hosts"
+
+describe("recipeImageProps", () => {
+  it.each([null, undefined, "  "])("falls back to the placeholder for %j", (imageUrl) => {
+    expect(recipeImageProps(imageUrl)).toEqual({ src: "/no-image.jpeg", unoptimized: false })
+  })
+
+  it("skips the optimizer only for external images", () => {
+    expect(recipeImageProps("https://images.seriouseats.com/soup.jpg")).toEqual({
+      src: "https://images.seriouseats.com/soup.jpg",
+      unoptimized: true,
+    })
+    expect(recipeImageProps("https://cdn.foodiesfinds.com/recipes/a.jpg").unoptimized).toBe(false)
+  })
+})
 
 describe("isOwnImage", () => {
   it.each([

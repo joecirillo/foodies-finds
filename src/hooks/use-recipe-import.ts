@@ -17,10 +17,9 @@ export const useRecipeImport = ({ onPreview }: UseRecipeImportArgs) => {
   const [error, setError] = useState<string | null>(null)
   const latestRequestId = useRef(0)
 
-  // Server actions can't be aborted, so an older response that arrives after a newer
-  // request started is ignored instead — it must never overwrite the newer result.
   const importFromUrl = async (url: string) => {
     const requestId = ++latestRequestId.current
+    const isSupersededResponse = () => requestId !== latestRequestId.current
     setStatus("loading")
     setError(null)
 
@@ -28,7 +27,7 @@ export const useRecipeImport = ({ onPreview }: UseRecipeImportArgs) => {
       console.error("Recipe import request failed:", err)
       return { ok: false as const, error: UNEXPECTED_IMPORT_ERROR }
     })
-    if (requestId !== latestRequestId.current) return
+    if (isSupersededResponse()) return
 
     if (!result.ok) {
       setStatus("error")

@@ -1,5 +1,6 @@
 import { formatQuantityInput } from "@/lib/parse-quantity"
 import type {
+  EntityOption,
   IngredientRow,
   RecipeFormValues,
   RecipeImportPreview,
@@ -79,16 +80,23 @@ export const previewToRecipeFormValues = ({
   }
 }
 
-const comparableValues = ({ ingredients, steps, ...rest }: RecipeFormValues) => ({
-  ...rest,
-  ingredients: ingredients.map(({ name, unitId, quantityText, notes }) => ({
-    name,
-    unitId,
-    quantityText,
-    notes,
-  })),
-  steps: steps.map(({ description, tip }) => ({ description, tip })),
-})
+const comparableEntity = (entity: EntityOption) => [entity.id, entity.name]
+
+const comparableValues = (values: RecipeFormValues) => [
+  values.name,
+  values.description,
+  values.author,
+  values.preparationTime,
+  values.cookingTime,
+  values.servings,
+  values.calories,
+  values.cuisine && comparableEntity(values.cuisine),
+  values.tags.map(comparableEntity),
+  values.ingredients.map((row) => [row.name, row.unitId, row.quantityText, row.notes]),
+  values.steps.map((row) => [row.description, row.tip]),
+  values.imageUrl,
+  values.sourceUrl,
+]
 
 export const formValuesDiffer = (a: RecipeFormValues, b: RecipeFormValues) =>
   JSON.stringify(comparableValues(a)) !== JSON.stringify(comparableValues(b))

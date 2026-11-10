@@ -22,8 +22,10 @@ vi.mock("@/app/actions/recipe", () => ({
   deleteRecipeImageAction: vi.fn(),
 }))
 
-vi.mock("heic-to", () => ({ isHeic: vi.fn(), heicTo: vi.fn() }))
-vi.mock("browser-image-compression", () => ({ default: vi.fn() }))
+vi.mock("heic-to", () => ({ isHeic: vi.fn().mockResolvedValue(false), heicTo: vi.fn() }))
+vi.mock("browser-image-compression", () => ({
+  default: vi.fn(async (file: File) => new File([file], "photo.webp", { type: "image/webp" })),
+}))
 
 import { useRouter } from "next/navigation"
 import { addRecipeAction, importRecipeFromUrlAction } from "@/app/actions/recipe"
@@ -349,5 +351,34 @@ describe("AddRecipe import", () => {
 
     await waitFor(() => expect(mockAddRecipeAction).toHaveBeenCalledTimes(1))
     expect(mockAddRecipeAction.mock.calls[0][0].imageUrl).toBeNull()
+  })
+
+  it.each([
+    [
+      "removing the imported photo",
+      async (user: ReturnType<typeof userEvent.setup>) =>
+        user.click(await screen.findByRole("button", { name: "Remove imported photo" })),
+    ],
+    [
+      "choosing a replacement photo",
+      async (user: ReturnType<typeof userEvent.setup>) =>
+        user.upload(
+          document.querySelector('input[type="file"]') as HTMLInputElement,
+          new File(["fake-image"], "photo.jpg", { type: "image/jpeg" }),
+        ),
+    ],
+  ])("treats %s as an edit that needs confirmation", async (_, changePhoto) => {
+    const user = userEvent.setup()
+    mockImport
+      .mockResolvedValueOnce({ ok: true, preview: completePreview() })
+      .mockResolvedValueOnce({ ok: true, preview: sparsePreview() })
+    render(<AddRecipe />)
+
+    await importUrl(user)
+    await waitFor(() => expect(nameInput()).toHaveValue("Tomato Soup"))
+    await changePhoto(user)
+    await importUrl(user, "https://www.allrecipes.com/stew")
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument()
   })
 })

@@ -16,13 +16,14 @@ import type {
   SaveRecipeRequest,
   EditRecipeRequest,
   PresignedImageUpload,
+  ImportErrorCode,
   RecipeImportPreview,
 } from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
 export type ImportRecipeResult =
   | { ok: true; preview: RecipeImportPreview }
-  | { ok: false; error: string; code?: string }
+  | { ok: false; error: string; code?: ImportErrorCode }
 type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
 
 export const presignRecipeImageUploadAction = async (
@@ -126,43 +127,55 @@ export const updateRecipeAction = async (
 
 const INVALID_IMPORT_URL_MESSAGE = "Enter a full recipe link that starts with https://"
 
-const isHttpsUrl = (value: string) => {
+const UNEXPECTED_IMPORT_MESSAGE = "We couldn't import that recipe right now. Please try again."
+const RATE_LIMITED_IMPORT_MESSAGE =
+  "Too many imports right now. Please wait a minute and try again."
+const STATUSES_WITH_PRIVATE_MESSAGES = new Set(["401", "403"])
+
+const parseHttpsUrl = (value: string) => {
   try {
-    return new URL(value).protocol === "https:"
+    const url = new URL(value)
+    return url.protocol === "https:" ? url : null
   } catch {
-    return false
+    return null
   }
 }
 
+const hasUserFacingMessage = (err: ApiError) =>
+  !!err.code && Number(err.code) < 500 && !STATUSES_WITH_PRIVATE_MESSAGES.has(err.code)
+
 const importFailureMessage = (err: ApiError) => {
-  if (err.code === "429") return "Too many imports right now. Please wait a minute and try again."
-  if (err.code === "500" || !err.errorCode) {
-    return "We couldn't import that recipe right now. Please try again."
-  }
-  return err.message
+  if (err.code === "429") return RATE_LIMITED_IMPORT_MESSAGE
+  return hasUserFacingMessage(err) ? err.message : UNEXPECTED_IMPORT_MESSAGE
 }
 
 export const importRecipeFromUrlAction = async (url: string): Promise<ImportRecipeResult> => {
   const trimmedUrl = url.trim()
-  if (!isHttpsUrl(trimmedUrl)) {
+  const parsedUrl = parseHttpsUrl(trimmedUrl)
+  if (!parsedUrl) {
     return { ok: false, error: INVALID_IMPORT_URL_MESSAGE, code: "INVALID_URL" }
   }
 
-  console.log("Importing recipe preview:", trimmedUrl)
+  const host = parsedUrl.hostname
+  console.log("Importing recipe preview from:", host)
   try {
     const preview = await importRecipeFromUrl(trimmedUrl)
-    console.log("Recipe preview imported:", preview.source.sourceUrl)
+    console.log("Recipe preview imported from:", host)
     return { ok: true, preview }
   } catch (err) {
     const apiErr = err as ApiError
     console.error(
-      "Failed to import recipe preview:",
-      trimmedUrl,
+      "Failed to import recipe preview from:",
+      host,
       "code:",
       apiErr.code,
       apiErr.errorCode,
       apiErr.message,
     )
-    return { ok: false, error: importFailureMessage(apiErr), code: apiErr.errorCode }
+    return {
+      ok: false,
+      error: importFailureMessage(apiErr),
+      code: apiErr.errorCode as ImportErrorCode | undefined,
+    }
   }
 }

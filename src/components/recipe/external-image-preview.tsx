@@ -44,7 +44,7 @@ export const ExternalImagePreview = ({ src, alt, onRemove }: ExternalImagePrevie
         <button
           type="button"
           onClick={onRemove}
-          className="inline-flex items-center gap-1 py-1 text-muted-foreground hover:text-destructive transition-colors"
+          className="-ml-2 inline-flex min-h-11 items-center gap-1 px-2 text-muted-foreground hover:text-destructive transition-colors"
         >
           <HugeiconsIcon icon={Delete02Icon} className="size-4" />
           Remove imported photo

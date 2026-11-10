@@ -115,6 +115,14 @@ describe("formValuesDiffer", () => {
     expect(formValuesDiffer(a, b)).toBe(false)
   })
 
+  it("ignores the order in which keys were written", () => {
+    const values = { ...emptyRecipeFormValues(), cuisine: { id: 1, name: "Thai" } }
+    const reordered = Object.fromEntries(Object.entries(values).reverse()) as typeof values
+    reordered.cuisine = { name: "Thai", id: 1 }
+
+    expect(formValuesDiffer(values, reordered)).toBe(false)
+  })
+
   it.each([
     ["a field", { name: "Soup" }],
     ["the image", { imageUrl: "https://images.example.com/a.jpg" }],

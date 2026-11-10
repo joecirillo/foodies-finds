@@ -11,12 +11,12 @@ const hostnameOf = (src: string) => {
   }
 }
 
-// Relative paths and bare R2 keys have no hostname and are ours. Imported recipes can
-// point at any publisher's image host, which next/image would reject unless unoptimized.
-export const isOwnImage = (src: string) => {
-  const hostname = hostnameOf(src)
-  return hostname === null || OWN_IMAGE_HOSTS.includes(hostname)
-}
+const isRelativePathOrStorageKey = (src: string) => hostnameOf(src) === null
 
-export const recipeImageSrc = (imageUrl: string | null | undefined) =>
-  imageUrl?.trim() ? imageUrl : "/no-image.jpeg"
+export const isOwnImage = (src: string) =>
+  isRelativePathOrStorageKey(src) || OWN_IMAGE_HOSTS.includes(hostnameOf(src) ?? "")
+
+export const recipeImageProps = (imageUrl: string | null | undefined) => {
+  const src = imageUrl?.trim() ? imageUrl : "/no-image.jpeg"
+  return { src, unoptimized: !isOwnImage(src) }
+}

@@ -361,9 +361,39 @@ describe("importRecipeFromUrlAction", () => {
     })
   })
 
+  it("passes through a client error message that has no import code", async () => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(
+      apiError("422", "url must be 2048 characters or fewer."),
+    )
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toEqual({
+      ok: false,
+      error: "url must be 2048 characters or fewer.",
+      code: undefined,
+    })
+  })
+
+  it("logs only the hostname, not the full submitted url", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {})
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    mockImportRecipeFromUrl.mockRejectedValueOnce(apiError("400", "Nope", "FETCH_FAILED"))
+
+    await importRecipeFromUrlAction("https://example.com/recipe?token=secret-123")
+
+    const logged = JSON.stringify([...log.mock.calls, ...error.mock.calls])
+    expect(logged).toContain("example.com")
+    expect(logged).not.toContain("secret-123")
+    log.mockRestore()
+    error.mockRestore()
+  })
+
   it.each([
     ["server errors", apiError("500", "Internal server error")],
-    ["errors without an import code", apiError("401", "Unauthorized")],
+    ["bad gateways", apiError("502", "Bad gateway")],
+    ["authorization failures", apiError("401", "Invalid API key")],
+    ["forbidden responses", apiError("403", "Forbidden")],
     ["network failures", new Error("fetch failed")],
   ])("hides details of %s", async (_, err) => {
     mockImportRecipeFromUrl.mockRejectedValueOnce(err)

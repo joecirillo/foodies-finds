@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Suspense } from "react"
 import { filterRecipes, listRecipes } from "@/lib/api"
 import { BrowseFilters } from "@/components/BrowseFilters"
-import { isOwnImage, recipeImageSrc } from "@/lib/image-hosts"
+import { recipeImageProps } from "@/lib/image-hosts"
 
 export const dynamic = "force-dynamic"
 
@@ -48,12 +48,11 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
             >
               <div className="relative aspect-square w-full bg-muted">
                 <Image
-                  src={recipeImageSrc(recipe.imageUrl)}
+                  {...recipeImageProps(recipe.imageUrl)}
                   alt={recipe.name}
                   fill
                   sizes="(min-width: 1024px) 230px, (min-width: 768px) 165px, 33vw"
                   className="object-cover"
-                  unoptimized={!isOwnImage(recipeImageSrc(recipe.imageUrl))}
                 />
               </div>
               <div className="p-3">
