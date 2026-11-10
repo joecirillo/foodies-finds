@@ -12,15 +12,24 @@ const quantityError = (quantityText: string) => {
   return null
 }
 
-export const validateIngredients = (
-  ingredients: Pick<IngredientRow, "name" | "quantityText" | "unitId">[],
-): Record<string, string> => {
+type ValidatedIngredient = Pick<IngredientRow, "name" | "quantityText" | "unitId"> &
+  Partial<Pick<IngredientRow, "notes">>
+
+const hasDetailsWithoutName = (ingredient: ValidatedIngredient) =>
+  !!ingredient.quantityText.trim() || ingredient.unitId !== null || !!ingredient.notes?.trim()
+
+export const validateIngredients = (ingredients: ValidatedIngredient[]): Record<string, string> => {
   const errors: Record<string, string> = {}
   if (!ingredients.some((ingredient) => ingredient.name.trim())) {
     errors.ingredients = "At least one named ingredient is required"
   }
   ingredients.forEach((ingredient, index) => {
-    if (!ingredient.name.trim()) return
+    if (!ingredient.name.trim()) {
+      if (hasDetailsWithoutName(ingredient)) {
+        errors[`ingredient-${index}-name`] = "Name this ingredient or remove the row"
+      }
+      return
+    }
     const quantityMessage = quantityError(ingredient.quantityText)
     if (quantityMessage) {
       errors[`ingredient-${index}-quantity`] = quantityMessage

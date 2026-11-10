@@ -9,16 +9,20 @@ import type {
   Tag,
   Unit,
   PresignedImageUpload,
+  RecipeImportPreview,
 } from "@/types/recipe"
 
-// Backend errors use the envelope `{ message, status, ... }` (see recipe-api's
-// ErrorResponse). Falls back to a status-only message when the body isn't JSON or
-// has no `message`, so callers never see a raw parse error in its place.
-async function apiError(res: Response): Promise<Error> {
+export type ApiError = Error & { code: string; errorCode?: string }
+
+export const isApiError = (value: unknown): value is ApiError =>
+  value instanceof Error && typeof (value as Partial<ApiError>).code === "string"
+
+async function apiError(res: Response): Promise<ApiError> {
   const body = await res.json().catch(() => null)
   const message = body?.message ?? `API ${res.status}`
-  const err = new Error(message)
-  ;(err as NodeJS.ErrnoException).code = String(res.status)
+  const err = new Error(message) as ApiError
+  err.code = String(res.status)
+  if (typeof body?.code === "string") err.errorCode = body.code
   return err
 }
 
@@ -102,6 +106,9 @@ export const searchTags = (query: string) =>
   apiFetch<Tag[]>(`/tags?query=${encodeURIComponent(query)}`)
 
 export const listUnits = () => apiFetch<Unit[]>("/units", { revalidate: 3600 })
+
+export const importRecipeFromUrl = (url: string) =>
+  apiPost<RecipeImportPreview>("/recipes/import-preview", { url })
 
 export const presignRecipeImageUpload = (contentType: string, contentLength: number) =>
   apiPost<PresignedImageUpload>("/recipes/images/presign", { contentType, contentLength })

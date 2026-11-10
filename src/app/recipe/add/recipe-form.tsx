@@ -16,14 +16,17 @@ import {
 import { TagPicker } from "@/components/recipe/TagPicker"
 import { UnitPicker } from "@/components/recipe/UnitPicker"
 import { Button } from "@/components/ui/button"
-import { validateIngredients } from "@/lib/ingredient-validation"
+import { ExternalImagePreview } from "@/components/recipe/external-image-preview"
+import { emptyRecipeFormValues, formValuesDiffer } from "@/lib/recipe-import/recipe-form-values"
+import { validateRecipeForm } from "@/lib/recipe-form-validation"
 import { parseQuantity } from "@/lib/parse-quantity"
 import { Input } from "@/components/ui/input"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
+import { useScrollToField } from "@/hooks/use-scroll-to-field"
 import { useStepRows } from "@/hooks/useStepRows"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { lowerFirst, toSentenceCase, toTitleCase } from "@/lib/utils/text"
-import type { EntityOption, IngredientRow, Unit } from "@/types/recipe"
+import type { EntityOption, IngredientRow, RecipeFormValues, Unit } from "@/types/recipe"
 import {
   ArrowLeft02Icon,
   Delete02Icon,
@@ -38,35 +41,39 @@ import { useEffect, useRef, useState } from "react"
 
 type SearchResult = { id: number; name: string }
 
-export const RecipeForm = () => {
+type RecipeFormProps = {
+  initialValues?: RecipeFormValues
+  showInitialErrors?: boolean
+  onDirtyChange?: (isDirty: boolean) => void
+  beforeFields?: React.ReactNode
+}
+
+export const RecipeForm = ({
+  initialValues,
+  showInitialErrors = false,
+  onDirtyChange,
+  beforeFields,
+}: RecipeFormProps) => {
   const router = useRouter()
-  const keyCounter = useRef(1)
+  const [initial] = useState(() => initialValues ?? emptyRecipeFormValues())
+  const keyCounter = useRef(initial.ingredients.length)
   const nextKey = () => ++keyCounter.current
 
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [author, setAuthor] = useState("")
+  const [name, setName] = useState(initial.name)
+  const [description, setDescription] = useState(initial.description)
+  const [author, setAuthor] = useState(initial.author)
   const [imageFile, setImageFile] = useState<File | undefined>(undefined)
+  const [externalImageUrl, setExternalImageUrl] = useState(initial.imageUrl)
   const [isProcessingImage, setIsProcessingImage] = useState(false)
-  const [preparationTime, setPreparationTime] = useState("")
-  const [cookingTime, setCookingTime] = useState("")
-  const [servings, setServings] = useState("")
-  const [calories, setCalories] = useState("")
+  const [preparationTime, setPreparationTime] = useState(initial.preparationTime)
+  const [cookingTime, setCookingTime] = useState(initial.cookingTime)
+  const [servings, setServings] = useState(initial.servings)
+  const [calories, setCalories] = useState(initial.calories)
 
-  const [selectedCuisine, setSelectedCuisine] = useState<EntityOption | null>(null)
-  const [selectedTags, setSelectedTags] = useState<EntityOption[]>([])
+  const [selectedCuisine, setSelectedCuisine] = useState<EntityOption | null>(initial.cuisine)
+  const [selectedTags, setSelectedTags] = useState<EntityOption[]>(initial.tags)
 
-  const [ingredients, setIngredients] = useState<IngredientRow[]>([
-    {
-      key: 0,
-      name: "",
-      unitId: null,
-      quantityText: "",
-      notes: "",
-      searchResults: [],
-      dropdownOpen: false,
-    },
-  ])
+  const [ingredients, setIngredients] = useState<IngredientRow[]>(initial.ingredients)
 
   const {
     steps,
@@ -76,12 +83,12 @@ export const RecipeForm = () => {
     updateStep,
     dragHandlersFor,
     dragHandlePropsFor,
-  } = useStepRows({
-    initialSteps: [{ key: 0, description: "", tip: "" }],
-  })
+  } = useStepRows({ initialSteps: initial.steps })
 
   const [units, setUnits] = useState<Unit[]>([])
-  const [errors, setErrors] = useState<Record<string, string>>({})
+  const [errors, setErrors] = useState<Record<string, string>>(() =>
+    showInitialErrors ? validateRecipeForm(initial) : {},
+  )
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -91,6 +98,29 @@ export const RecipeForm = () => {
     idleLabel: "Save Recipe",
   })
 
+  const isDirty =
+    imageFile !== undefined ||
+    formValuesDiffer(initial, {
+      name,
+      description,
+      author,
+      preparationTime,
+      cookingTime,
+      servings,
+      calories,
+      cuisine: selectedCuisine,
+      tags: selectedTags,
+      ingredients,
+      steps,
+      imageUrl: externalImageUrl,
+      sourceUrl: initial.sourceUrl,
+    })
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty)
+  }, [isDirty, onDirtyChange])
+
+  const scrollToField = useScrollToField()
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
@@ -147,40 +177,19 @@ export const RecipeForm = () => {
   }
 
   const validate = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!name.trim()) newErrors.name = "Recipe name is required"
-
-    const prepTime = parseInt(preparationTime)
-    if (!preparationTime || isNaN(prepTime) || prepTime < 1)
-      newErrors.preparationTime = "Preparation time must be at least 1 minute"
-
-    const cookTime = parseInt(cookingTime)
-    if (cookingTime !== "" && (isNaN(cookTime) || cookTime < 0))
-      newErrors.cookingTime = "Cooking time must be 0 or more"
-
-    const servingsNum = parseInt(servings)
-    if (!servings || isNaN(servingsNum) || servingsNum < 1)
-      newErrors.servings = "Servings is required"
-
-    if (!selectedCuisine) newErrors.cuisine = "Cuisine is required"
-
-    Object.assign(newErrors, validateIngredients(ingredients))
-
-    const validSteps = steps.filter((s) => s.description.trim())
-    if (validSteps.length === 0)
-      newErrors.steps = "At least one step with a description is required"
-
+    const newErrors = validateRecipeForm({
+      name,
+      preparationTime,
+      cookingTime,
+      servings,
+      cuisine: selectedCuisine,
+      ingredients,
+      steps,
+    })
     setErrors(newErrors)
 
     const firstKey = Object.keys(newErrors)[0]
-    if (firstKey) {
-      setTimeout(() => {
-        document
-          .getElementById(`field-${firstKey}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }, 50)
-    }
+    if (firstKey) scrollToField(firstKey)
 
     return Object.keys(newErrors).length === 0
   }
@@ -218,7 +227,8 @@ export const RecipeForm = () => {
           description: toSentenceCase(s.description.trim()),
           tip: s.tip.trim() ? lowerFirst(s.tip.trim()) : null,
         })),
-      imageUrl: null,
+      imageUrl: imageFile ? null : externalImageUrl,
+      ...(initial.sourceUrl && { sourceUrl: initial.sourceUrl }),
     })
 
     if (!result.ok) {
@@ -266,6 +276,7 @@ export const RecipeForm = () => {
       </div>
 
       <div className="mx-auto max-w-screen-sm px-4 pt-5 space-y-8">
+        {beforeFields}
         {/* Basic Info */}
         <section>
           <SectionHeading>Basic Info</SectionHeading>
@@ -390,6 +401,8 @@ export const RecipeForm = () => {
                 "Processing photo…"
               ) : imageFile ? (
                 <span className="text-foreground font-medium truncate block">{imageFile.name}</span>
+              ) : externalImageUrl ? (
+                "Tap to replace the imported photo…"
               ) : (
                 "Tap to choose a photo…"
               )}
@@ -405,6 +418,13 @@ export const RecipeForm = () => {
               </button>
             )}
           </div>
+          {externalImageUrl && !imageFile && (
+            <ExternalImagePreview
+              src={externalImageUrl}
+              alt={name.trim() || "Imported recipe photo"}
+              onRemove={() => setExternalImageUrl(null)}
+            />
+          )}
           <FieldError message={errors.image} />
         </section>
 
@@ -467,7 +487,7 @@ export const RecipeForm = () => {
                     </button>
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative" id={`field-ingredient-${index}-name`}>
                   <Input
                     value={ingredient.name}
                     onChange={(e) => handleIngredientNameChange(index, e.target.value)}
@@ -475,7 +495,10 @@ export const RecipeForm = () => {
                       setTimeout(() => updateIngredient(index, { dropdownOpen: false }), 150)
                     }
                     placeholder="Ingredient name"
+                    aria-label={`Ingredient ${index + 1} name`}
+                    aria-invalid={!!errors[`ingredient-${index}-name`]}
                   />
+                  <FieldError message={errors[`ingredient-${index}-name`]} />
                   {ingredient.dropdownOpen && ingredient.searchResults.length > 0 && (
                     <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
                       {ingredient.searchResults.map((r) => (

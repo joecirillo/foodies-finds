@@ -9,6 +9,7 @@ import {
   listRecipes,
   searchRecipes,
   filterRecipes,
+  importRecipeFromUrl,
 } from "./api"
 
 const mockFetch = vi.fn()
@@ -371,6 +372,42 @@ describe("filterRecipes", () => {
     await expect(filterRecipes({ name: "pasta" })).rejects.toMatchObject({
       message: "API 500",
       code: "500",
+    })
+  })
+})
+
+describe("importRecipeFromUrl", () => {
+  it("posts the url to the import preview endpoint and returns the preview", async () => {
+    const preview = { recipe: { name: "Soup" }, source: {}, warnings: [] }
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: preview }),
+    })
+
+    const result = await importRecipeFromUrl("https://www.seriouseats.com/soup")
+
+    expect(result).toEqual(preview)
+    const [url, init] = mockFetch.mock.calls[0]
+    expect(url).toMatch(/\/recipes\/import-preview$/)
+    expect(init.method).toBe("POST")
+    expect(JSON.parse(init.body)).toEqual({ url: "https://www.seriouseats.com/soup" })
+  })
+
+  it("keeps the backend error code alongside the HTTP status", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 400,
+      json: () =>
+        Promise.resolve({
+          message: "No recipe data was found on that page.",
+          code: "NO_RECIPE_FOUND",
+        }),
+    })
+
+    await expect(importRecipeFromUrl("https://example.com")).rejects.toMatchObject({
+      message: "No recipe data was found on that page.",
+      code: "400",
+      errorCode: "NO_RECIPE_FOUND",
     })
   })
 })

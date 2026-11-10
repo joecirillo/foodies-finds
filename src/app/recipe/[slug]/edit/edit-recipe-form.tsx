@@ -30,7 +30,9 @@ import {
   deleteRecipeImageAction,
 } from "@/app/actions/recipe"
 import { useSaveButtonState } from "@/hooks/useSaveButtonState"
+import { useScrollToField } from "@/hooks/use-scroll-to-field"
 import { useStepRows } from "@/hooks/useStepRows"
+import { isOwnImage } from "@/lib/image-hosts"
 import { ACCEPTED_IMAGE_TYPES, prepareImageFile, putToPresignedUrl } from "@/lib/upload"
 import { diffRecipeForUpdate } from "@/lib/recipe-diff"
 import { toSentenceCase, lowerFirst, toTitleCase } from "@/lib/utils/text"
@@ -190,6 +192,8 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setIngredients((prev) => prev.filter((_, i) => i !== index))
   }
 
+  const scrollToField = useScrollToField()
+
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
@@ -214,13 +218,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
     setErrors(newErrors)
 
     const firstKey = Object.keys(newErrors)[0]
-    if (firstKey) {
-      setTimeout(() => {
-        document
-          .getElementById(`field-${firstKey}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" })
-      }, 50)
-    }
+    if (firstKey) scrollToField(firstKey)
 
     return Object.keys(newErrors).length === 0
   }
@@ -298,7 +296,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
 
     if (result.ok) {
       // Replaced the image: the old one is now orphaned in R2, clean it up.
-      if (newImageKey && existingImageUrl) {
+      if (newImageKey && existingImageUrl && isOwnImage(existingImageUrl)) {
         deleteRecipeImageAction(existingImageUrl)
       }
       hasSavedRef.current = true
@@ -547,7 +545,7 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                     </button>
                   )}
                 </div>
-                <div className="relative">
+                <div className="relative" id={`field-ingredient-${index}-name`}>
                   <Input
                     value={ingredient.name}
                     onChange={(e) => handleIngredientNameChange(index, e.target.value)}
@@ -555,7 +553,10 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
                       setTimeout(() => updateIngredient(index, { dropdownOpen: false }), 150)
                     }
                     placeholder="Ingredient name"
+                    aria-label={`Ingredient ${index + 1} name`}
+                    aria-invalid={!!errors[`ingredient-${index}-name`]}
                   />
+                  <FieldError message={errors[`ingredient-${index}-name`]} />
                   {ingredient.dropdownOpen && ingredient.searchResults.length > 0 && (
                     <div className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-popover shadow-md">
                       {ingredient.searchResults.map((r) => (

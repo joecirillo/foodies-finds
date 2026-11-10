@@ -1,10 +1,10 @@
 import type { Metadata } from "next"
-import { RecipeForm } from "./recipe-form"
+import { AddRecipe } from "./add-recipe"
 
 export const metadata: Metadata = {
   title: "New Recipe",
 }
 
-const NewRecipePage = () => <RecipeForm />
+const NewRecipePage = () => <AddRecipe />
 
 export default NewRecipePage

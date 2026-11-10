@@ -76,6 +76,7 @@ const baseRecipe: Recipe = {
   ],
   steps: [{ stepId: 1, stepNumber: 1, description: "Boil the pasta", tip: null }],
   imageUrl: null,
+  sourceUrl: null,
   createdAt: "2024-01-01",
   updatedAt: "2024-01-01",
 }
@@ -530,6 +531,26 @@ describe("EditRecipeForm", () => {
           "https://cdn.foodiesfinds.com/recipes/old-123.jpg",
         )
       })
+    })
+
+    it("does not ask R2 to delete an imported image hosted by another site", async () => {
+      stubFetch(true)
+      mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+      mockUpdateRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+      const user = userEvent.setup()
+      const recipe = { ...baseRecipe, imageUrl: "https://images.seriouseats.com/soup.jpg" }
+      render(<EditRecipeForm recipe={recipe} />)
+
+      await selectImageFile(user)
+      await user.click(screen.getAllByText("Save Changes")[0])
+
+      await waitFor(() => {
+        expect(mockUpdateRecipeAction).toHaveBeenCalledWith(
+          1,
+          expect.objectContaining({ imageUrl: PRESIGNED.key }),
+        )
+      })
+      expect(mockDeleteRecipeImageAction).not.toHaveBeenCalled()
     })
 
     it("does not delete anything when there was no previous image", async () => {

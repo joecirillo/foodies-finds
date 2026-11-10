@@ -7,12 +7,30 @@ import {
   updateRecipeImage,
   presignRecipeImageUpload,
   deleteRecipeImage,
+  importRecipeFromUrl,
   RECIPES_LIST_TAG,
+  isApiError,
+  type ApiError,
 } from "@/lib/api"
+import { isImportErrorCode } from "@/lib/recipe-import/import-error-codes"
+import {
+  INVALID_IMPORT_URL_MESSAGE,
+  RATE_LIMITED_IMPORT_MESSAGE,
+  UNEXPECTED_IMPORT_MESSAGE,
+} from "@/lib/recipe-import/import-messages"
 import { ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR } from "@/lib/upload"
-import type { SaveRecipeRequest, EditRecipeRequest, PresignedImageUpload } from "@/types/recipe"
+import type {
+  SaveRecipeRequest,
+  EditRecipeRequest,
+  PresignedImageUpload,
+  ImportErrorCode,
+  RecipeImportPreview,
+} from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
+export type ImportRecipeResult =
+  | { ok: true; preview: RecipeImportPreview }
+  | { ok: false; error: string; code?: ImportErrorCode }
 type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
 
 export const presignRecipeImageUploadAction = async (
@@ -111,5 +129,56 @@ export const updateRecipeAction = async (
       return { ok: false, error: "Something went wrong on our end. Please try again." }
     }
     return { ok: false, error: message }
+  }
+}
+
+const STATUSES_WITH_PRIVATE_MESSAGES = new Set(["401", "403"])
+
+const parseHttpsUrl = (value: string) => {
+  try {
+    const url = new URL(value)
+    return url.protocol === "https:" ? url : null
+  } catch {
+    return null
+  }
+}
+
+const hasUserFacingMessage = (err: ApiError) =>
+  !!err.code && Number(err.code) < 500 && !STATUSES_WITH_PRIVATE_MESSAGES.has(err.code)
+
+const importFailureMessage = (err: unknown) => {
+  if (!isApiError(err)) return UNEXPECTED_IMPORT_MESSAGE
+  if (err.code === "429") return RATE_LIMITED_IMPORT_MESSAGE
+  return hasUserFacingMessage(err) ? err.message : UNEXPECTED_IMPORT_MESSAGE
+}
+
+export const importRecipeFromUrlAction = async (url: string): Promise<ImportRecipeResult> => {
+  const trimmedUrl = url.trim()
+  const parsedUrl = parseHttpsUrl(trimmedUrl)
+  if (!parsedUrl) {
+    return { ok: false, error: INVALID_IMPORT_URL_MESSAGE, code: "INVALID_URL" }
+  }
+
+  const host = parsedUrl.hostname
+  console.log("Importing recipe preview from:", host)
+  try {
+    const preview = await importRecipeFromUrl(trimmedUrl)
+    console.log("Recipe preview imported from:", host)
+    return { ok: true, preview }
+  } catch (err) {
+    const apiErr = isApiError(err) ? err : null
+    console.error(
+      "Failed to import recipe preview from:",
+      host,
+      "code:",
+      apiErr?.code,
+      apiErr?.errorCode,
+      apiErr?.message ?? err,
+    )
+    return {
+      ok: false,
+      error: importFailureMessage(err),
+      code: isImportErrorCode(apiErr?.errorCode) ? apiErr.errorCode : undefined,
+    }
   }
 }

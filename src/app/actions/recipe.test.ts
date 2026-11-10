@@ -4,14 +4,17 @@ import type {
   EditRecipeRequest,
   PresignedImageUpload,
   Recipe,
+  RecipeImportPreview,
 } from "@/types/recipe"
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api", async (importOriginal) => ({
+  isApiError: (await importOriginal<typeof import("@/lib/api")>()).isApiError,
   addRecipe: vi.fn(),
   updateRecipe: vi.fn(),
   updateRecipeImage: vi.fn(),
   presignRecipeImageUpload: vi.fn(),
   deleteRecipeImage: vi.fn(),
+  importRecipeFromUrl: vi.fn(),
   RECIPES_LIST_TAG: "recipes-list",
 }))
 
@@ -26,6 +29,7 @@ import {
   updateRecipeImage,
   presignRecipeImageUpload,
   deleteRecipeImage,
+  importRecipeFromUrl,
   RECIPES_LIST_TAG,
 } from "@/lib/api"
 import { revalidatePath, updateTag } from "next/cache"
@@ -35,6 +39,7 @@ import {
   presignRecipeImageUploadAction,
   attachRecipeImageAction,
   deleteRecipeImageAction,
+  importRecipeFromUrlAction,
 } from "./recipe"
 
 const mockAddRecipe = vi.mocked(addRecipe)
@@ -42,6 +47,7 @@ const mockUpdateRecipe = vi.mocked(updateRecipe)
 const mockUpdateRecipeImage = vi.mocked(updateRecipeImage)
 const mockPresignRecipeImageUpload = vi.mocked(presignRecipeImageUpload)
 const mockDeleteRecipeImage = vi.mocked(deleteRecipeImage)
+const mockImportRecipeFromUrl = vi.mocked(importRecipeFromUrl)
 const mockRevalidatePath = vi.mocked(revalidatePath)
 const mockUpdateTag = vi.mocked(updateTag)
 
@@ -51,6 +57,7 @@ beforeEach(() => {
   mockUpdateRecipeImage.mockReset()
   mockPresignRecipeImageUpload.mockReset()
   mockDeleteRecipeImage.mockReset()
+  mockImportRecipeFromUrl.mockReset()
   mockRevalidatePath.mockReset()
   mockUpdateTag.mockReset()
 })
@@ -287,5 +294,126 @@ describe("deleteRecipeImageAction", () => {
     mockDeleteRecipeImage.mockRejectedValueOnce(new Error("API 500"))
 
     await expect(deleteRecipeImageAction("recipes/abc-123.jpg")).resolves.toBeUndefined()
+  })
+})
+
+describe("importRecipeFromUrlAction", () => {
+  const apiError = (status: string, message: string, errorCode?: string) =>
+    Object.assign(new Error(message), { code: status, errorCode })
+
+  const preview: RecipeImportPreview = {
+    recipe: { name: "Tomato Soup" },
+    source: {
+      sourceUrl: "https://www.seriouseats.com/tomato-soup",
+      originalAuthor: null,
+      originalIngredientLines: [],
+      originalYield: null,
+      recipeCount: 1,
+    },
+    warnings: [],
+  }
+
+  it("returns the preview for a trimmed https url", async () => {
+    mockImportRecipeFromUrl.mockResolvedValueOnce(preview)
+
+    const result = await importRecipeFromUrlAction("  https://www.seriouseats.com/tomato-soup  ")
+
+    expect(mockImportRecipeFromUrl).toHaveBeenCalledWith("https://www.seriouseats.com/tomato-soup")
+    expect(result).toEqual({ ok: true, preview })
+  })
+
+  it.each(["", "   ", "not a url", "http://example.com/recipe", "ftp://example.com"])(
+    "rejects %j locally without calling the API",
+    async (url) => {
+      const result = await importRecipeFromUrlAction(url)
+
+      expect(mockImportRecipeFromUrl).not.toHaveBeenCalled()
+      expect(result).toEqual({
+        ok: false,
+        error: "Enter a full recipe link that starts with https://",
+        code: "INVALID_URL",
+      })
+    },
+  )
+
+  it("preserves the backend error code and safe message", async () => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(
+      apiError("400", "That site isn't supported for import yet.", "SOURCE_NOT_ALLOWED"),
+    )
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toEqual({
+      ok: false,
+      error: "That site isn't supported for import yet.",
+      code: "SOURCE_NOT_ALLOWED",
+    })
+  })
+
+  it("asks the user to wait when rate limited", async () => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(apiError("429", "Too Many Requests"))
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Too many imports right now. Please wait a minute and try again.",
+      code: undefined,
+    })
+  })
+
+  it("passes through a client error message that has no import code", async () => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(
+      apiError("422", "url must be 2048 characters or fewer."),
+    )
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toEqual({
+      ok: false,
+      error: "url must be 2048 characters or fewer.",
+      code: undefined,
+    })
+  })
+
+  it("drops an error code that is not part of the import contract", async () => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(apiError("400", "Odd failure", "SOMETHING_NEW"))
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toEqual({ ok: false, error: "Odd failure", code: undefined })
+  })
+
+  it("logs only the hostname, not the full submitted url", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => {})
+    const error = vi.spyOn(console, "error").mockImplementation(() => {})
+    mockImportRecipeFromUrl.mockRejectedValueOnce(apiError("400", "Nope", "FETCH_FAILED"))
+
+    await importRecipeFromUrlAction("https://example.com/recipe?token=secret-123")
+
+    const logged = JSON.stringify([...log.mock.calls, ...error.mock.calls])
+    expect(logged).toContain("example.com")
+    expect(logged).not.toContain("secret-123")
+    log.mockRestore()
+    error.mockRestore()
+  })
+
+  it.each([
+    ["server errors", apiError("500", "Internal server error")],
+    ["bad gateways", apiError("502", "Bad gateway")],
+    ["authorization failures", apiError("401", "Invalid API key")],
+    ["forbidden responses", apiError("403", "Forbidden")],
+    ["network failures", new Error("fetch failed")],
+    ["a thrown null", null],
+    ["a thrown string", "boom"],
+  ])("hides details of %s", async (_, err) => {
+    mockImportRecipeFromUrl.mockRejectedValueOnce(err)
+
+    const result = await importRecipeFromUrlAction("https://example.com/recipe")
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: "We couldn't import that recipe right now. Please try again.",
+    })
   })
 })
