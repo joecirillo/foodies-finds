@@ -49,6 +49,7 @@ src/
 - The code should be self documenting. Don't write comments unless they are asked for
 - Follow single responsibility principle throughout the code
 - No `any` types unless its type is obvious
+- Name new `.ts`/`.tsx` files and their folders in kebab-case, including hooks (e.g. `use-recipe-import.ts`). Existing camelCase and PascalCase files are legacy: don't copy that style, and don't rename them in unrelated changes
 
 ## Cross-repository API contract
 
