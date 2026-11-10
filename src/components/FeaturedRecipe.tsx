@@ -6,6 +6,7 @@ import Link from "next/link"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { TimeIcon, FireIcon, UserIcon, Loading03Icon } from "@hugeicons/core-free-icons"
 import { Button } from "@/components/ui/button"
+import { isOwnImage, recipeImageSrc } from "@/lib/image-hosts"
 import { formatMinutes } from "@/lib/utils/format"
 import type { Recipe } from "@/types/recipe"
 
@@ -27,16 +28,18 @@ export const RecipeOfTheDay = ({ initialRecipe }: { initialRecipe: Recipe }) => 
   }
 
   const totalTime = currentRecipe.preparationTime + currentRecipe.cookingTime
+  const imageSrc = recipeImageSrc(currentRecipe.imageUrl)
 
   return (
     <div className="rounded-2xl overflow-hidden bg-card ring-1 ring-foreground/10 shadow-sm">
       <div className="relative w-full aspect-4/3 bg-muted">
         <Image
-          src={currentRecipe.imageUrl?.trim() ? currentRecipe.imageUrl : "/no-image.jpeg"}
+          src={imageSrc}
           alt={currentRecipe.name}
           fill
           sizes="(min-width: 640px) 608px, calc(100vw - 2rem)"
           className="object-contain"
+          unoptimized={!isOwnImage(imageSrc)}
         />
       </div>
 

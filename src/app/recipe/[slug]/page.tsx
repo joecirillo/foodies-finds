@@ -4,12 +4,15 @@ import { notFound } from "next/navigation"
 import { HugeiconsIcon } from "@hugeicons/react"
 import {
   ArrowLeft02Icon,
+  ArrowUpRight01Icon,
   Edit02Icon,
   TimeIcon,
   FireIcon,
   UserIcon,
 } from "@hugeicons/core-free-icons"
 import { getRecipe } from "@/lib/api"
+import { isOwnImage, recipeImageSrc } from "@/lib/image-hosts"
+import { sourceHostname } from "@/lib/recipe-import/source-hostname"
 import { formatMinutes, formatQuantity } from "@/lib/utils/format"
 import { toTitleCase, toSentenceCase, lowerFirst } from "@/lib/utils/text"
 import { Button } from "@/components/ui/button"
@@ -44,6 +47,7 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
   }
 
   const totalTime = recipe.preparationTime + recipe.cookingTime
+  const imageSrc = recipeImageSrc(recipe.imageUrl)
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -98,13 +102,26 @@ const RecipePage = async (props: PageProps<"/recipe/[slug]">) => {
           </p>
         )}
 
+        {recipe.sourceUrl?.startsWith("https://") && (
+          <a
+            href={recipe.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-1 inline-flex items-center gap-1 py-1 text-sm text-primary underline-offset-2 hover:underline"
+          >
+            Original recipe: {sourceHostname(recipe.sourceUrl)}
+            <HugeiconsIcon icon={ArrowUpRight01Icon} className="size-3.5" />
+          </a>
+        )}
+
         <div className="relative mt-4 w-full aspect-4/3 overflow-hidden rounded-2xl bg-muted">
           <Image
-            src={recipe.imageUrl?.trim() ? recipe.imageUrl : "/no-image.jpeg"}
+            src={imageSrc}
             alt={recipe.name}
             fill
             sizes="(min-width: 640px) 608px, calc(100vw - 2rem)"
             className="object-cover"
+            unoptimized={!isOwnImage(imageSrc)}
             priority
           />
         </div>

@@ -7,12 +7,22 @@ import {
   updateRecipeImage,
   presignRecipeImageUpload,
   deleteRecipeImage,
+  importRecipeFromUrl,
   RECIPES_LIST_TAG,
+  type ApiError,
 } from "@/lib/api"
 import { ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR } from "@/lib/upload"
-import type { SaveRecipeRequest, EditRecipeRequest, PresignedImageUpload } from "@/types/recipe"
+import type {
+  SaveRecipeRequest,
+  EditRecipeRequest,
+  PresignedImageUpload,
+  RecipeImportPreview,
+} from "@/types/recipe"
 
 type ActionResult = { ok: true; id: number } | { ok: false; error: string }
+export type ImportRecipeResult =
+  | { ok: true; preview: RecipeImportPreview }
+  | { ok: false; error: string; code?: string }
 type PresignResult = ({ ok: true } & PresignedImageUpload) | { ok: false; error: string }
 
 export const presignRecipeImageUploadAction = async (
@@ -111,5 +121,48 @@ export const updateRecipeAction = async (
       return { ok: false, error: "Something went wrong on our end. Please try again." }
     }
     return { ok: false, error: message }
+  }
+}
+
+const INVALID_IMPORT_URL_MESSAGE = "Enter a full recipe link that starts with https://"
+
+const isHttpsUrl = (value: string) => {
+  try {
+    return new URL(value).protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+const importFailureMessage = (err: ApiError) => {
+  if (err.code === "429") return "Too many imports right now. Please wait a minute and try again."
+  if (err.code === "500" || !err.errorCode) {
+    return "We couldn't import that recipe right now. Please try again."
+  }
+  return err.message
+}
+
+export const importRecipeFromUrlAction = async (url: string): Promise<ImportRecipeResult> => {
+  const trimmedUrl = url.trim()
+  if (!isHttpsUrl(trimmedUrl)) {
+    return { ok: false, error: INVALID_IMPORT_URL_MESSAGE, code: "INVALID_URL" }
+  }
+
+  console.log("Importing recipe preview:", trimmedUrl)
+  try {
+    const preview = await importRecipeFromUrl(trimmedUrl)
+    console.log("Recipe preview imported:", preview.source.sourceUrl)
+    return { ok: true, preview }
+  } catch (err) {
+    const apiErr = err as ApiError
+    console.error(
+      "Failed to import recipe preview:",
+      trimmedUrl,
+      "code:",
+      apiErr.code,
+      apiErr.errorCode,
+      apiErr.message,
+    )
+    return { ok: false, error: importFailureMessage(apiErr), code: apiErr.errorCode }
   }
 }

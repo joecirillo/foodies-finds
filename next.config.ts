@@ -1,4 +1,5 @@
 import type { NextConfig } from "next"
+import { OWN_IMAGE_HOSTS } from "./src/lib/image-hosts"
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -9,16 +10,7 @@ const nextConfig: NextConfig = {
     },
   },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "pub-017886dc539b41789e7c76de04239c5d.r2.dev",
-      },
-      {
-        protocol: "https",
-        hostname: "cdn.foodiesfinds.com",
-      },
-    ],
+    remotePatterns: OWN_IMAGE_HOSTS.map((hostname) => ({ protocol: "https" as const, hostname })),
   },
 }
 

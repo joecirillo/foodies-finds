@@ -36,13 +36,26 @@ describe("validateIngredients", () => {
     )
   })
 
-  it("ignores quantities on unnamed rows", () => {
+  it("ignores completely blank rows", () => {
     expect(
       validateIngredients([
         { name: "Salt", quantityText: "", unitId: null },
-        { name: "", quantityText: "abc", unitId: null },
+        { name: "  ", quantityText: " ", unitId: null, notes: "" },
       ]),
     ).toEqual({})
+  })
+
+  it.each([
+    { quantityText: "abc", unitId: null, notes: "" },
+    { quantityText: "", unitId: 2, notes: "" },
+    { quantityText: "", unitId: null, notes: "diced" },
+  ])("asks for a name instead of dropping a row with details: %o", (details) => {
+    expect(
+      validateIngredients([
+        { name: "Salt", quantityText: "", unitId: null },
+        { name: "", ...details },
+      ]),
+    ).toEqual({ "ingredient-1-name": "Name this ingredient or remove the row" })
   })
 
   it("requires at least one named ingredient", () => {

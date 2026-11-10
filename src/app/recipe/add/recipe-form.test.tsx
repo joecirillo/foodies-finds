@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen, waitFor, fireEvent } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
+import { emptyRecipeFormValues } from "@/lib/recipe-import/recipe-form-values"
+import type { RecipeFormValues } from "@/types/recipe"
 import { RecipeForm } from "./recipe-form"
 
 vi.mock("next/navigation", () => ({
@@ -312,6 +314,67 @@ describe("RecipeForm", () => {
         expect(mockPush).toHaveBeenCalledWith("/recipe/1")
       })
       expect(mockDeleteRecipeImageAction).not.toHaveBeenCalled()
+    })
+
+    describe("imported external image", () => {
+      const EXTERNAL_IMAGE = "https://images.example.com/soup.jpg"
+
+      const importedValues = (): RecipeFormValues => ({
+        ...emptyRecipeFormValues(),
+        name: "Soup",
+        preparationTime: "10",
+        servings: "2",
+        cuisine: { id: null, name: "Italian" },
+        ingredients: [{ ...emptyRecipeFormValues().ingredients[0], name: "Stock" }],
+        steps: [{ key: 0, description: "Simmer", tip: "" }],
+        imageUrl: EXTERNAL_IMAGE,
+        sourceUrl: "https://example.com/soup",
+      })
+
+      it("uploads a replacement photo instead of saving the imported link", async () => {
+        stubFetch(true)
+        mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 1 })
+        mockPresignRecipeImageUploadAction.mockResolvedValueOnce(PRESIGNED)
+        mockAttachRecipeImageAction.mockResolvedValueOnce({ ok: true })
+
+        const user = userEvent.setup()
+        render(<RecipeForm initialValues={importedValues()} />)
+        expect(screen.getByText("Tap to replace the imported photo…")).toBeInTheDocument()
+        await selectImageFile(user)
+
+        expect(
+          screen.queryByRole("button", { name: "Remove imported photo" }),
+        ).not.toBeInTheDocument()
+        await user.click(screen.getAllByText("Save Recipe")[0])
+
+        await waitFor(() => {
+          expect(mockAddRecipeAction).toHaveBeenCalledWith(
+            expect.objectContaining({ imageUrl: null }),
+          )
+        })
+        await waitFor(() => {
+          expect(mockAttachRecipeImageAction).toHaveBeenCalledWith(1, PRESIGNED.key)
+        })
+      })
+
+      it("falls back when the imported photo cannot load and still saves its link", async () => {
+        mockAddRecipeAction.mockResolvedValueOnce({ ok: true, id: 3 })
+        const user = userEvent.setup()
+        render(<RecipeForm initialValues={importedValues()} />)
+
+        fireEvent.error(screen.getByAltText("Soup"))
+
+        expect(screen.getByText("Couldn't load preview")).toBeInTheDocument()
+        await user.click(screen.getAllByText("Save Recipe")[0])
+
+        await waitFor(() => {
+          expect(mockAddRecipeAction).toHaveBeenCalledWith(
+            expect.objectContaining({ imageUrl: EXTERNAL_IMAGE }),
+          )
+        })
+        expect(mockPresignRecipeImageUploadAction).not.toHaveBeenCalled()
+        expect(mockPush).toHaveBeenCalledWith("/recipe/3")
+      })
     })
 
     it("still navigates when the recipe was created but presigning fails", async () => {

@@ -100,6 +100,7 @@ export type SaveRecipeRequest = {
   ingredients: RecipeIngredientInput[]
   steps: RecipeStepInput[]
   imageUrl: string | null
+  sourceUrl?: string | null
 }
 
 // Sent on update (PATCH /recipes/:id) — only fields that actually changed are included;
@@ -120,6 +121,74 @@ export type Recipe = {
   ingredients: Ingredient[]
   steps: Step[]
   imageUrl: string | null
+  sourceUrl: string | null
   createdAt: string
   updatedAt: string
+}
+
+export type ImportErrorCode =
+  | "INVALID_URL"
+  | "SOURCE_NOT_ALLOWED"
+  | "FETCH_FAILED"
+  | "SOURCE_HTTP_ERROR"
+  | "FETCH_TIMEOUT"
+  | "SOURCE_BLOCKED"
+  | "RESPONSE_TOO_LARGE"
+  | "UNSUPPORTED_CONTENT_TYPE"
+  | "NO_RECIPE_FOUND"
+
+export type RecipeImportWarning = {
+  code:
+    | "INVALID_FIELD"
+    | "INVALID_DURATION"
+    | "AMBIGUOUS_YIELD"
+    | "UNSUPPORTED_YIELD"
+    | "INVALID_IMAGE_URL"
+    | "MULTIPLE_RECIPES"
+    | "SAVE_LIMIT_EXCEEDED"
+    | "BELOW_SAVE_MINIMUM"
+  field?: string
+  message: string
+}
+
+export type RecipeImportPreview = {
+  recipe: {
+    name?: string
+    description?: string
+    cookingTime?: number | null
+    preparationTime?: number | null
+    servings?: number
+    cuisine?: { id: null; name: string }
+    tags?: { id: null; name: string }[]
+    author?: string
+    imageUrl?: string
+    ingredients?: RecipeIngredientInput[]
+    steps?: RecipeStepInput[]
+  }
+  source: {
+    sourceUrl: string
+    originalAuthor: string | null
+    originalIngredientLines: string[]
+    originalYield: string | null
+    recipeCount: number
+  }
+  warnings: RecipeImportWarning[]
+}
+
+export type RecipeImportContext = Pick<RecipeImportPreview, "source" | "warnings">
+
+export type RecipeFormValues = {
+  name: string
+  description: string
+  author: string
+  preparationTime: string
+  cookingTime: string
+  servings: string
+  calories: string
+  cuisine: EntityOption | null
+  tags: EntityOption[]
+  ingredients: IngredientRow[]
+  steps: StepRow[]
+  imageUrl: string | null
+  sourceUrl: string | null
 }
