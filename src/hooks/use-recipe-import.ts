@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { importRecipeFromUrlAction } from "@/app/actions/recipe"
+import { UNEXPECTED_IMPORT_MESSAGE } from "@/lib/recipe-import/import-messages"
 import type { RecipeImportPreview } from "@/types/recipe"
 
 type ImportStatus = "idle" | "loading" | "error"
@@ -9,8 +10,6 @@ type ImportStatus = "idle" | "loading" | "error"
 type UseRecipeImportArgs = {
   onPreview: (preview: RecipeImportPreview) => void
 }
-
-const UNEXPECTED_IMPORT_ERROR = "We couldn't import that recipe right now. Please try again."
 
 export const useRecipeImport = ({ onPreview }: UseRecipeImportArgs) => {
   const [status, setStatus] = useState<ImportStatus>("idle")
@@ -25,7 +24,7 @@ export const useRecipeImport = ({ onPreview }: UseRecipeImportArgs) => {
 
     const result = await importRecipeFromUrlAction(url).catch((err: unknown) => {
       console.error("Recipe import request failed:", err)
-      return { ok: false as const, error: UNEXPECTED_IMPORT_ERROR }
+      return { ok: false as const, error: UNEXPECTED_IMPORT_MESSAGE }
     })
     if (isSupersededResponse()) return
 

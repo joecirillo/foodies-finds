@@ -249,6 +249,25 @@ describe("AddRecipe import", () => {
     ).toBeInTheDocument()
   })
 
+  it("blocks a second import while one is loading, so the dialog keeps its preview", async () => {
+    const user = userEvent.setup()
+    let resolveImport!: (value: Awaited<ReturnType<typeof importRecipeFromUrlAction>>) => void
+    mockImport.mockReturnValueOnce(new Promise((resolve) => (resolveImport = resolve)))
+    render(<AddRecipe />)
+    await user.type(nameInput(), "My Draft")
+
+    await importUrl(user)
+    const importButton = screen.getByRole("button", { name: "Importing…" })
+    expect(importButton).toBeDisabled()
+    await user.type(screen.getByLabelText("Import from a link"), "{Enter}")
+    expect(mockImport).toHaveBeenCalledTimes(1)
+
+    resolveImport({ ok: true, preview: completePreview() })
+    await user.click(await screen.findByRole("button", { name: "Replace draft" }))
+
+    await waitFor(() => expect(nameInput()).toHaveValue("Tomato Soup"))
+  })
+
   it("replaces an untouched imported draft without asking", async () => {
     const user = userEvent.setup()
     mockImport

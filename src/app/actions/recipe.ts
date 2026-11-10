@@ -11,6 +11,7 @@ import {
   RECIPES_LIST_TAG,
   type ApiError,
 } from "@/lib/api"
+import { UNEXPECTED_IMPORT_MESSAGE } from "@/lib/recipe-import/import-messages"
 import { ALLOWED_IMAGE_TYPES, IMAGE_TYPE_ERROR } from "@/lib/upload"
 import type {
   SaveRecipeRequest,
@@ -127,7 +128,6 @@ export const updateRecipeAction = async (
 
 const INVALID_IMPORT_URL_MESSAGE = "Enter a full recipe link that starts with https://"
 
-const UNEXPECTED_IMPORT_MESSAGE = "We couldn't import that recipe right now. Please try again."
 const RATE_LIMITED_IMPORT_MESSAGE =
   "Too many imports right now. Please wait a minute and try again."
 const STATUSES_WITH_PRIVATE_MESSAGES = new Set(["401", "403"])
