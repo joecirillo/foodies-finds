@@ -41,7 +41,7 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
         <p className="text-base text-muted-foreground">No recipes found. Add one now!</p>
       ) : (
         <RecipeGrid
-          key={`${cuisineId}-${tagId}-${ingredientId}`}
+          key={JSON.stringify({ cuisineId, tagId, ingredientId })}
           initialRecipes={page.recipes}
           initialCursor={page.nextCursor}
         />

@@ -14,7 +14,6 @@ export const useLoadMoreRecipes = (
   const [nextCursor, setNextCursor] = useState(initialCursor)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  // A ref, not state, so a second tap before React re-renders still sees the request in flight.
   const inFlight = useRef(false)
 
   const loadMore = async () => {
