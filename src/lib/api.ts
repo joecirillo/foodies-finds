@@ -4,6 +4,7 @@ import type {
   SaveRecipeRequest,
   EditRecipeRequest,
   RecipeSearchResult,
+  RecipeListPage,
   Cuisine,
   Ingredient,
   Tag,
@@ -63,8 +64,16 @@ export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipes/${i
 
 export const RECIPES_LIST_TAG = "recipes-list"
 
-export const listRecipes = () =>
-  apiFetch<RecipeSearchResult[]>("/recipes", { tags: [RECIPES_LIST_TAG] })
+export const listRecipes = (cursor?: number) =>
+  apiFetch<RecipeListPage>(cursor === undefined ? "/recipes" : `/recipes?cursor=${cursor}`, {
+    tags: [RECIPES_LIST_TAG],
+  })
+
+export const loadMoreRecipes = async (cursor: number): Promise<RecipeListPage> => {
+  const res = await fetch(`/api/recipes?cursor=${cursor}`)
+  if (!res.ok) throw await apiError(res)
+  return res.json()
+}
 
 async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {

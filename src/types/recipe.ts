@@ -4,6 +4,11 @@ export type RecipeSearchResult = {
   imageUrl?: string
 }
 
+export type RecipeListPage = {
+  recipes: RecipeSearchResult[]
+  nextCursor: number | null
+}
+
 export type PresignedImageUpload = {
   uploadUrl: string
   key: string

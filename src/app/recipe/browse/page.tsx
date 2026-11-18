@@ -1,11 +1,12 @@
-import Image from "next/image"
-import Link from "next/link"
 import { Suspense } from "react"
 import { filterRecipes, listRecipes } from "@/lib/api"
 import { BrowseFilters } from "@/components/BrowseFilters"
-import { recipeImageProps } from "@/lib/image-hosts"
+import { RecipeGrid } from "@/components/recipe/recipe-grid"
+import type { RecipeListPage } from "@/types/recipe"
 
 export const dynamic = "force-dynamic"
+
+const EMPTY_PAGE: RecipeListPage = { recipes: [], nextCursor: null }
 
 const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<string, string>> }) => {
   const params = await searchParams
@@ -15,10 +16,10 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
 
   const hasFilters = cuisineId || tagId || ingredientId
 
-  let recipes: { id: number; name: string; imageUrl?: string }[] = []
+  let page = EMPTY_PAGE
   try {
-    recipes = hasFilters
-      ? await filterRecipes({ cuisineId, tagId, ingredientId })
+    page = hasFilters
+      ? { recipes: await filterRecipes({ cuisineId, tagId, ingredientId }), nextCursor: null }
       : await listRecipes()
   } catch {
     // Render empty state on failure
@@ -36,33 +37,14 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
         </Suspense>
       </div>
 
-      {recipes.length === 0 ? (
+      {page.recipes.length === 0 ? (
         <p className="text-base text-muted-foreground">No recipes found. Add one now!</p>
       ) : (
-        <div className="grid grid-cols-3 gap-6 md:grid-cols-4">
-          {recipes.map((recipe) => (
-            <Link
-              key={recipe.id}
-              href={`/recipe/${recipe.id}`}
-              className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-foreground/10 transition-opacity active:opacity-80"
-            >
-              <div className="relative aspect-square w-full bg-muted">
-                <Image
-                  {...recipeImageProps(recipe.imageUrl)}
-                  alt={recipe.name}
-                  fill
-                  sizes="(min-width: 1024px) 230px, (min-width: 768px) 165px, 33vw"
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-3">
-                <p className="line-clamp-2 text-sm font-medium leading-snug text-foreground">
-                  {recipe.name}
-                </p>
-              </div>
-            </Link>
-          ))}
-        </div>
+        <RecipeGrid
+          key={`${cuisineId}-${tagId}-${ingredientId}`}
+          initialRecipes={page.recipes}
+          initialCursor={page.nextCursor}
+        />
       )}
     </div>
   )

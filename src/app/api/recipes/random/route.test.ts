@@ -42,7 +42,7 @@ beforeEach(() => {
 
 describe("GET /api/recipes/random", () => {
   it("returns a random recipe as JSON", async () => {
-    mockListRecipes.mockResolvedValueOnce([{ id: 5, name: "Steak" }])
+    mockListRecipes.mockResolvedValueOnce({ recipes: [{ id: 5, name: "Steak" }], nextCursor: null })
     mockPickRandom.mockReturnValueOnce({ id: 5, name: "Steak" })
     mockGetRecipe.mockResolvedValueOnce(recipe)
 
@@ -55,7 +55,7 @@ describe("GET /api/recipes/random", () => {
   })
 
   it("returns 404 when list is empty", async () => {
-    mockListRecipes.mockResolvedValueOnce([])
+    mockListRecipes.mockResolvedValueOnce({ recipes: [], nextCursor: null })
     mockPickRandom.mockReturnValueOnce(undefined)
 
     const res = await GET()
@@ -76,7 +76,7 @@ describe("GET /api/recipes/random", () => {
   })
 
   it("returns 500 when getRecipe throws", async () => {
-    mockListRecipes.mockResolvedValueOnce([{ id: 5, name: "Steak" }])
+    mockListRecipes.mockResolvedValueOnce({ recipes: [{ id: 5, name: "Steak" }], nextCursor: null })
     mockPickRandom.mockReturnValueOnce({ id: 5, name: "Steak" })
     mockGetRecipe.mockRejectedValueOnce(new Error("Not found"))
 

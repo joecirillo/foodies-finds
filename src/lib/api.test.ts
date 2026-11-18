@@ -7,6 +7,7 @@ import {
   presignRecipeImageUpload,
   deleteRecipeImage,
   listRecipes,
+  loadMoreRecipes,
   searchRecipes,
   filterRecipes,
   importRecipeFromUrl,
@@ -139,17 +140,31 @@ describe("updateRecipe", () => {
 
 describe("listRecipes", () => {
   it("unwraps body.data on success", async () => {
-    const list = [
-      { id: 1, name: "Pasta" },
-      { id: 2, name: "Tacos" },
-    ]
+    const page = {
+      recipes: [
+        { id: 2, name: "Tacos" },
+        { id: 1, name: "Pasta" },
+      ],
+      nextCursor: null,
+    }
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ data: list }),
+      json: () => Promise.resolve({ data: page }),
     })
 
     const result = await listRecipes()
-    expect(result).toEqual(list)
+    expect(result).toEqual(page)
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/recipes$/)
+  })
+
+  it("requests recipes older than the cursor", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: { recipes: [], nextCursor: null } }),
+    })
+
+    await listRecipes(20)
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/recipes\?cursor=20$/)
   })
 
   it("throws with the API error message when the body has a message field", async () => {
@@ -175,6 +190,30 @@ describe("listRecipes", () => {
     await expect(listRecipes()).rejects.toMatchObject({
       message: "API 500",
       code: "500",
+    })
+  })
+})
+
+describe("loadMoreRecipes", () => {
+  it("fetches the next page from the local route handler", async () => {
+    const page = { recipes: [{ id: 3, name: "Soup" }], nextCursor: 3 }
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(page) })
+
+    const result = await loadMoreRecipes(4)
+    expect(result).toEqual(page)
+    expect(mockFetch).toHaveBeenCalledWith("/api/recipes?cursor=4")
+  })
+
+  it("throws with the route's error message on failure", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: () => Promise.resolve({ message: "Couldn't load more recipes" }),
+    })
+
+    await expect(loadMoreRecipes(4)).rejects.toMatchObject({
+      message: "Couldn't load more recipes",
+      code: "502",
     })
   })
 })
