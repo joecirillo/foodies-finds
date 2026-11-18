@@ -8,7 +8,7 @@ const FALLBACK_ERROR = "Couldn't load more recipes. Please try again."
 
 export const useLoadMoreRecipes = (
   initialRecipes: RecipeSearchResult[],
-  initialCursor: number | null,
+  initialCursor: string | null,
 ) => {
   const [recipes, setRecipes] = useState(initialRecipes)
   const [nextCursor, setNextCursor] = useState(initialCursor)

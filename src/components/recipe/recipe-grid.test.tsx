@@ -20,7 +20,7 @@ beforeEach(() => {
 describe("RecipeGrid", () => {
   it("adds the next recipes below the first page and hides the button at the end", async () => {
     mockLoadMore.mockResolvedValueOnce({ recipes: [{ id: 1, name: "Pasta" }], nextCursor: null })
-    render(<RecipeGrid initialRecipes={[{ id: 2, name: "Tacos" }]} initialCursor={2} />)
+    render(<RecipeGrid initialRecipes={[{ id: 2, name: "Tacos" }]} initialCursor="c2" />)
 
     await userEvent.click(screen.getByRole("button", { name: "Load more recipes" }))
 
@@ -37,7 +37,7 @@ describe("RecipeGrid", () => {
 
   it("shows an error and keeps the button for a retry", async () => {
     mockLoadMore.mockRejectedValueOnce(new TypeError("Failed to fetch"))
-    render(<RecipeGrid initialRecipes={[{ id: 2, name: "Tacos" }]} initialCursor={2} />)
+    render(<RecipeGrid initialRecipes={[{ id: 2, name: "Tacos" }]} initialCursor="c2" />)
 
     await userEvent.click(screen.getByRole("button", { name: "Load more recipes" }))
 

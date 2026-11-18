@@ -20,19 +20,19 @@ beforeEach(() => {
 })
 
 describe("GET /api/recipes", () => {
-  it("returns the page of recipes older than the cursor", async () => {
-    const page = { recipes: [{ id: 3, name: "Soup" }], nextCursor: 3 }
+  it("passes the opaque cursor through and returns the next page", async () => {
+    const page = { recipes: [{ id: 3, name: "Soup" }], nextCursor: "eyJpZCI6M30" }
     mockListRecipes.mockResolvedValueOnce(page)
 
-    const res = await GET(requestWith("?cursor=4"))
+    const res = await GET(requestWith("?cursor=eyJpZCI6NH0"))
 
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual(page)
-    expect(mockListRecipes).toHaveBeenCalledWith(4)
+    expect(mockListRecipes).toHaveBeenCalledWith("eyJpZCI6NH0")
   })
 
-  it.each(["", "?cursor=", "?cursor=abc", "?cursor=0", "?cursor=-2", "?cursor=1.5"])(
-    "rejects an invalid cursor (%s) without calling the API",
+  it.each(["", "?cursor="])(
+    "rejects a missing cursor (%s) without calling the API",
     async (query) => {
       const res = await GET(requestWith(query))
 

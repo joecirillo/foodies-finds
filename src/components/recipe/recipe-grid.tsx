@@ -7,7 +7,7 @@ import type { RecipeSearchResult } from "@/types/recipe"
 
 type RecipeGridProps = {
   initialRecipes: RecipeSearchResult[]
-  initialCursor: number | null
+  initialCursor: string | null
 }
 
 export const RecipeGrid = ({ initialRecipes, initialCursor }: RecipeGridProps) => {

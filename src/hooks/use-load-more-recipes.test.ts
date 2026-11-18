@@ -27,19 +27,19 @@ beforeEach(() => {
 
 describe("useLoadMoreRecipes", () => {
   it("appends the next page and advances the cursor", async () => {
-    mockLoadMore.mockResolvedValueOnce({ recipes: [recipe(2)], nextCursor: 2 })
-    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], 3))
+    mockLoadMore.mockResolvedValueOnce({ recipes: [recipe(2)], nextCursor: "c2" })
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], "c3"))
 
     await act(() => result.current.loadMore())
 
-    expect(mockLoadMore).toHaveBeenCalledWith(3)
+    expect(mockLoadMore).toHaveBeenCalledWith("c3")
     expect(result.current.recipes.map((r) => r.id)).toEqual([3, 2])
     expect(result.current.hasMore).toBe(true)
   })
 
   it("reports no more recipes once the last page arrives", async () => {
     mockLoadMore.mockResolvedValueOnce({ recipes: [recipe(1)], nextCursor: null })
-    const { result } = renderHook(() => useLoadMoreRecipes([recipe(2)], 2))
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(2)], "c2"))
 
     await act(() => result.current.loadMore())
 
@@ -57,7 +57,7 @@ describe("useLoadMoreRecipes", () => {
   it("ignores repeat taps while a page is loading", async () => {
     const request = deferred()
     mockLoadMore.mockReturnValueOnce(request.promise)
-    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], 3))
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], "c3"))
 
     act(() => {
       void result.current.loadMore()
@@ -72,7 +72,7 @@ describe("useLoadMoreRecipes", () => {
 
   it("ignores a second tap that lands before React re-renders", async () => {
     mockLoadMore.mockResolvedValueOnce({ recipes: [recipe(2)], nextCursor: null })
-    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], 3))
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], "c3"))
 
     await act(async () => {
       const { loadMore } = result.current
@@ -86,7 +86,7 @@ describe("useLoadMoreRecipes", () => {
   it("shows the API message and keeps the cursor so the user can retry", async () => {
     const error = Object.assign(new Error("Invalid cursor"), { code: "400" }) as ApiError
     mockLoadMore.mockRejectedValueOnce(error)
-    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], 3))
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], "c3"))
 
     await act(() => result.current.loadMore())
 
@@ -97,7 +97,7 @@ describe("useLoadMoreRecipes", () => {
 
   it("falls back to a friendly message for network failures", async () => {
     mockLoadMore.mockRejectedValueOnce(new TypeError("Failed to fetch"))
-    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], 3))
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], "c3"))
 
     await act(() => result.current.loadMore())
 
