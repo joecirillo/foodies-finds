@@ -16,14 +16,12 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
 
   const hasFilters = cuisineId || tagId || ingredientId
 
-  let page = EMPTY_PAGE
-  try {
-    page = hasFilters
+  const loadFirstPage = async (): Promise<RecipeListPage> =>
+    hasFilters
       ? { recipes: await filterRecipes({ cuisineId, tagId, ingredientId }), nextCursor: null }
-      : await listRecipes()
-  } catch {
-    // Render empty state on failure
-  }
+      : listRecipes()
+
+  const page = await loadFirstPage().catch(() => EMPTY_PAGE)
 
   return (
     <div className="mx-auto max-w-screen-sm px-4 pb-10 md:max-w-3xl lg:max-w-5xl">
