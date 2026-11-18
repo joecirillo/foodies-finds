@@ -70,6 +70,19 @@ describe("useLoadMoreRecipes", () => {
     expect(result.current.isLoading).toBe(false)
   })
 
+  it("ignores a second tap that lands before React re-renders", async () => {
+    mockLoadMore.mockResolvedValueOnce({ recipes: [recipe(2)], nextCursor: null })
+    const { result } = renderHook(() => useLoadMoreRecipes([recipe(3)], 3))
+
+    await act(async () => {
+      const { loadMore } = result.current
+      await Promise.all([loadMore(), loadMore()])
+    })
+
+    expect(mockLoadMore).toHaveBeenCalledTimes(1)
+    expect(result.current.recipes.map((r) => r.id)).toEqual([3, 2])
+  })
+
   it("shows the API message and keeps the cursor so the user can retry", async () => {
     const error = Object.assign(new Error("Invalid cursor"), { code: "400" }) as ApiError
     mockLoadMore.mockRejectedValueOnce(error)

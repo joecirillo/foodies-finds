@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { isApiError, loadMoreRecipes } from "@/lib/api"
 import type { RecipeSearchResult } from "@/types/recipe"
 
@@ -14,9 +14,12 @@ export const useLoadMoreRecipes = (
   const [nextCursor, setNextCursor] = useState(initialCursor)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // A ref, not state, so a second tap before React re-renders still sees the request in flight.
+  const inFlight = useRef(false)
 
   const loadMore = async () => {
-    if (nextCursor === null || isLoading) return
+    if (nextCursor === null || inFlight.current) return
+    inFlight.current = true
     setIsLoading(true)
     setError(null)
     try {
@@ -26,6 +29,7 @@ export const useLoadMoreRecipes = (
     } catch (err) {
       setError(isApiError(err) ? err.message : FALLBACK_ERROR)
     } finally {
+      inFlight.current = false
       setIsLoading(false)
     }
   }

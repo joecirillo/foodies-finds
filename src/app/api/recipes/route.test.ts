@@ -50,8 +50,13 @@ describe("GET /api/recipes", () => {
     expect(await res.json()).toEqual({ message: "Invalid cursor" })
   })
 
-  it("hides server failures behind a friendly 502", async () => {
-    mockListRecipes.mockRejectedValueOnce(apiError("500", "Database connection failed"))
+  it.each([
+    ["500", "Database connection failed"],
+    ["401", "Unauthorized"],
+    ["403", "Forbidden"],
+    ["429", "Rate limit exceeded"],
+  ])("hides an upstream %s behind a friendly 502", async (code, message) => {
+    mockListRecipes.mockRejectedValueOnce(apiError(code, message))
 
     const res = await GET(requestWith("?cursor=4"))
 
@@ -59,5 +64,13 @@ describe("GET /api/recipes", () => {
     expect(await res.json()).toEqual({
       message: "Couldn't load more recipes. Please try again.",
     })
+  })
+
+  it("hides unexpected non-API errors behind a friendly 502", async () => {
+    mockListRecipes.mockRejectedValueOnce(new TypeError("fetch failed"))
+
+    const res = await GET(requestWith("?cursor=4"))
+
+    expect(res.status).toBe(502)
   })
 })
