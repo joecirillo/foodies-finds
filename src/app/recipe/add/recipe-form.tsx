@@ -124,6 +124,11 @@ export const RecipeForm = ({
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
+    const timers = debounceTimers.current
+    return () => Object.values(timers).forEach(clearTimeout)
+  }, [])
+
+  useEffect(() => {
     fetch("/api/units")
       .then((r) => r.json())
       .then((data: Unit[]) => setUnits(data))

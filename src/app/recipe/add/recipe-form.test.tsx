@@ -110,6 +110,21 @@ async function fillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("RecipeForm", () => {
+  it("cancels a pending ingredient search when the form unmounts", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
+    const { unmount } = render(<RecipeForm />)
+
+    await user.type(screen.getByPlaceholderText("Ingredient name"), "flour")
+    unmount()
+    vi.advanceTimersByTime(1000)
+
+    const searchCalls = vi
+      .mocked(fetch)
+      .mock.calls.filter(([url]) => String(url).startsWith("/api/search/ingredients"))
+    expect(searchCalls).toHaveLength(0)
+  })
+
   describe("validation", () => {
     it("shows error when servings is empty", async () => {
       const user = userEvent.setup()
