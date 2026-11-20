@@ -1,3 +1,4 @@
+import "server-only"
 import { apiError } from "@/lib/api-error"
 import type {
   ApiResponse,
