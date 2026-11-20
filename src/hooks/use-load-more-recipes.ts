@@ -1,7 +1,8 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { isApiError, loadMoreRecipes } from "@/lib/api"
+import { loadMoreRecipes } from "@/lib/api-client"
+import { isApiError } from "@/lib/api-error"
 import type { RecipeSearchResult } from "@/types/recipe"
 
 const FALLBACK_ERROR = "Couldn't load more recipes. Please try again."

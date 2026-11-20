@@ -1,3 +1,4 @@
+import { apiError } from "@/lib/api-error"
 import type {
   ApiResponse,
   Recipe,
@@ -12,20 +13,6 @@ import type {
   PresignedImageUpload,
   RecipeImportPreview,
 } from "@/types/recipe"
-
-export type ApiError = Error & { code: string; errorCode?: string }
-
-export const isApiError = (value: unknown): value is ApiError =>
-  value instanceof Error && typeof (value as Partial<ApiError>).code === "string"
-
-async function apiError(res: Response): Promise<ApiError> {
-  const body = await res.json().catch(() => null)
-  const message = body?.message ?? `API ${res.status}`
-  const err = new Error(message) as ApiError
-  err.code = String(res.status)
-  if (typeof body?.code === "string") err.errorCode = body.code
-  return err
-}
 
 type FetchOptions = { revalidate?: number | false; tags?: string[] }
 
@@ -76,12 +63,6 @@ export const listRecipes = async (cursor?: string): Promise<RecipeListPage> => {
   return { recipes: body.data, nextCursor: body.meta?.pagination?.nextCursor ?? null }
 }
 
-export const loadMoreRecipes = async (cursor: string): Promise<RecipeListPage> => {
-  const res = await fetch(`/api/recipes?cursor=${encodeURIComponent(cursor)}`)
-  if (!res.ok) throw await apiError(res)
-  return res.json()
-}
-
 async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
     method: "PATCH",
@@ -105,12 +86,6 @@ export const updateRecipe = (id: number | string, payload: EditRecipeRequest) =>
 
 export const updateRecipeImage = (id: number | string, imageUrl: string | null) =>
   apiPatch<Recipe>(`/recipes/${id}`, { imageUrl })
-
-export const searchRecipes = async (name: string): Promise<RecipeSearchResult[]> => {
-  const res = await fetch(`/api/search/recipes?name=${encodeURIComponent(name)}`)
-  if (!res.ok) throw await apiError(res)
-  return res.json()
-}
 
 export const searchCuisines = (query: string) =>
   apiFetch<Cuisine[]>(`/cuisines?query=${encodeURIComponent(query)}`)
