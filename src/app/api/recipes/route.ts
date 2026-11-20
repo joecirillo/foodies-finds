@@ -1,4 +1,5 @@
-import { isApiError, listRecipes } from "@/lib/api"
+import { listRecipes } from "@/lib/api"
+import { isApiError } from "@/lib/api-error"
 
 const LOAD_FAILED_MESSAGE = "Couldn't load more recipes. Please try again."
 const USER_FIXABLE_ERROR_CODES = new Set(["400", "404"])

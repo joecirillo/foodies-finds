@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 
-vi.mock("@/lib/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/api")>()),
+vi.mock("@/lib/api", () => ({
   listRecipes: vi.fn(),
 }))
 
 import { GET } from "./route"
-import { listRecipes, type ApiError } from "@/lib/api"
+import { listRecipes } from "@/lib/api"
+import type { ApiError } from "@/lib/api-error"
 
 const mockListRecipes = vi.mocked(listRecipes)
 

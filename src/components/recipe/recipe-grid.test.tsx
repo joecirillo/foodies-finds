@@ -3,12 +3,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 
-vi.mock("@/lib/api", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("@/lib/api")>()),
+vi.mock("@/lib/api-client", () => ({
   loadMoreRecipes: vi.fn(),
 }))
 
-import { loadMoreRecipes } from "@/lib/api"
+import { loadMoreRecipes } from "@/lib/api-client"
 import { RecipeGrid } from "./recipe-grid"
 
 const mockLoadMore = vi.mocked(loadMoreRecipes)

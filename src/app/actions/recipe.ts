@@ -9,9 +9,8 @@ import {
   deleteRecipeImage,
   importRecipeFromUrl,
   RECIPES_LIST_TAG,
-  isApiError,
-  type ApiError,
 } from "@/lib/api"
+import { isApiError, type ApiError } from "@/lib/api-error"
 import { isImportErrorCode } from "@/lib/recipe-import/import-error-codes"
 import {
   INVALID_IMPORT_URL_MESSAGE,
