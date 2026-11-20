@@ -1,12 +1,11 @@
 import { Suspense } from "react"
 import { filterRecipes, listRecipes } from "@/lib/api"
 import { BrowseFilters } from "@/components/BrowseFilters"
+import { BrowseLoadError } from "@/components/recipe/browse-load-error"
 import { RecipeGrid } from "@/components/recipe/recipe-grid"
 import type { RecipeListPage } from "@/types/recipe"
 
 export const dynamic = "force-dynamic"
-
-const EMPTY_PAGE: RecipeListPage = { recipes: [], nextCursor: null }
 
 const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<string, string>> }) => {
   const params = await searchParams
@@ -21,7 +20,10 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
       ? { recipes: await filterRecipes({ cuisineId, tagId, ingredientId }), nextCursor: null }
       : listRecipes()
 
-  const page = await loadFirstPage().catch(() => EMPTY_PAGE)
+  const page = await loadFirstPage().catch((err: unknown) => {
+    console.error("Failed to load browse recipes:", err instanceof Error ? err.message : err)
+    return null
+  })
 
   return (
     <div className="mx-auto max-w-screen-sm px-4 pb-10 md:max-w-3xl lg:max-w-5xl">
@@ -35,7 +37,9 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
         </Suspense>
       </div>
 
-      {page.recipes.length === 0 ? (
+      {page === null ? (
+        <BrowseLoadError />
+      ) : page.recipes.length === 0 ? (
         <p className="text-base text-muted-foreground">No recipes found. Add one now!</p>
       ) : (
         <RecipeGrid
