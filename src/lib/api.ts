@@ -4,6 +4,7 @@ import type {
   SaveRecipeRequest,
   EditRecipeRequest,
   RecipeSearchResult,
+  RecipeListPage,
   Cuisine,
   Ingredient,
   Tag,
@@ -26,10 +27,12 @@ async function apiError(res: Response): Promise<ApiError> {
   return err
 }
 
-async function apiFetch<T>(
+type FetchOptions = { revalidate?: number | false; tags?: string[] }
+
+async function apiFetchEnvelope<T>(
   path: string,
-  { revalidate = 60, tags }: { revalidate?: number | false; tags?: string[] } = {},
-): Promise<T> {
+  { revalidate = 60, tags }: FetchOptions = {},
+): Promise<ApiResponse<T>> {
   const res = await fetch(`${process.env.API_URL}${path}`, {
     headers: {
       "x-api-key": process.env.API_KEY ?? "",
@@ -39,7 +42,11 @@ async function apiFetch<T>(
 
   if (!res.ok) throw await apiError(res)
 
-  const body: ApiResponse<T> = await res.json()
+  return res.json()
+}
+
+async function apiFetch<T>(path: string, options?: FetchOptions): Promise<T> {
+  const body = await apiFetchEnvelope<T>(path, options)
   return body.data
 }
 
@@ -63,8 +70,17 @@ export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipes/${i
 
 export const RECIPES_LIST_TAG = "recipes-list"
 
-export const listRecipes = () =>
-  apiFetch<RecipeSearchResult[]>("/recipes", { tags: [RECIPES_LIST_TAG] })
+export const listRecipes = async (cursor?: string): Promise<RecipeListPage> => {
+  const path = cursor === undefined ? "/recipes" : `/recipes?cursor=${encodeURIComponent(cursor)}`
+  const body = await apiFetchEnvelope<RecipeSearchResult[]>(path, { tags: [RECIPES_LIST_TAG] })
+  return { recipes: body.data, nextCursor: body.meta?.pagination?.nextCursor ?? null }
+}
+
+export const loadMoreRecipes = async (cursor: string): Promise<RecipeListPage> => {
+  const res = await fetch(`/api/recipes?cursor=${encodeURIComponent(cursor)}`)
+  if (!res.ok) throw await apiError(res)
+  return res.json()
+}
 
 async function apiPatch<T>(path: string, payload: unknown): Promise<T> {
   const res = await fetch(`${process.env.API_URL}${path}`, {

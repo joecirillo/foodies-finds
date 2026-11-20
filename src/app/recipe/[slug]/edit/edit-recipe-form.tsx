@@ -126,6 +126,11 @@ export const EditRecipeForm = ({ recipe }: { recipe: Recipe }) => {
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   useEffect(() => {
+    const timers = debounceTimers.current
+    return () => Object.values(timers).forEach(clearTimeout)
+  }, [])
+
+  useEffect(() => {
     // Steps get their own counter inside useStepRows, so this only needs to
     // stay ahead of existing ingredient keys.
     keyCounter.current = recipe.ingredients.length

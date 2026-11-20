@@ -4,10 +4,20 @@ export type RecipeSearchResult = {
   imageUrl?: string
 }
 
+export type RecipeListPage = {
+  recipes: RecipeSearchResult[]
+  nextCursor: string | null
+}
+
 export type PresignedImageUpload = {
   uploadUrl: string
   key: string
   imageUrl: string
+}
+
+export type CursorPagination = {
+  nextCursor: string | null
+  limit: number
 }
 
 export type ApiResponse<T> = {
@@ -15,6 +25,7 @@ export type ApiResponse<T> = {
   status: string
   message: string
   data: T
+  meta?: { pagination?: CursorPagination }
 }
 
 export type Cuisine = {

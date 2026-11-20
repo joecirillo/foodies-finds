@@ -7,6 +7,7 @@ import {
   presignRecipeImageUpload,
   deleteRecipeImage,
   listRecipes,
+  loadMoreRecipes,
   searchRecipes,
   filterRecipes,
   importRecipeFromUrl,
@@ -138,18 +139,38 @@ describe("updateRecipe", () => {
 })
 
 describe("listRecipes", () => {
-  it("unwraps body.data on success", async () => {
-    const list = [
-      { id: 1, name: "Pasta" },
-      { id: 2, name: "Tacos" },
-    ]
+  const recipes = [
+    { id: 2, name: "Tacos" },
+    { id: 1, name: "Pasta" },
+  ]
+
+  it("reads the recipes from data and the next cursor from meta.pagination", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
-      json: () => Promise.resolve({ data: list }),
+      json: () =>
+        Promise.resolve({
+          data: recipes,
+          meta: { pagination: { nextCursor: "eyJpZCI6MX0", limit: 12 } },
+        }),
     })
 
     const result = await listRecipes()
-    expect(result).toEqual(list)
+    expect(result).toEqual({ recipes, nextCursor: "eyJpZCI6MX0" })
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/recipes$/)
+  })
+
+  it("treats a response without pagination as the last page", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: recipes }) })
+
+    const result = await listRecipes()
+    expect(result).toEqual({ recipes, nextCursor: null })
+  })
+
+  it("sends the cursor URL-encoded", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: [] }) })
+
+    await listRecipes("a+b/c")
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/recipes\?cursor=a%2Bb%2Fc$/)
   })
 
   it("throws with the API error message when the body has a message field", async () => {
@@ -175,6 +196,30 @@ describe("listRecipes", () => {
     await expect(listRecipes()).rejects.toMatchObject({
       message: "API 500",
       code: "500",
+    })
+  })
+})
+
+describe("loadMoreRecipes", () => {
+  it("fetches the next page from the local route handler", async () => {
+    const page = { recipes: [{ id: 3, name: "Soup" }], nextCursor: "eyJpZCI6M30" }
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(page) })
+
+    const result = await loadMoreRecipes("eyJpZCI6NH0")
+    expect(result).toEqual(page)
+    expect(mockFetch).toHaveBeenCalledWith("/api/recipes?cursor=eyJpZCI6NH0")
+  })
+
+  it("throws with the route's error message on failure", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 502,
+      json: () => Promise.resolve({ message: "Couldn't load more recipes" }),
+    })
+
+    await expect(loadMoreRecipes("eyJpZCI6NH0")).rejects.toMatchObject({
+      message: "Couldn't load more recipes",
+      code: "502",
     })
   })
 })

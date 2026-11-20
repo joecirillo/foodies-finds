@@ -9,7 +9,7 @@ const HomePage = async () => {
   let initialRecipe: Recipe | null = null
 
   try {
-    const recipes = await listRecipes()
+    const { recipes } = await listRecipes()
     const picked = pickRandom(recipes)
     if (picked) initialRecipe = await getRecipe(picked.id)
   } catch {
