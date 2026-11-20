@@ -11,43 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useImportedDraft } from "@/hooks/use-imported-draft"
 import { useRecipeImport } from "@/hooks/use-recipe-import"
-import { previewToRecipeFormValues } from "@/lib/recipe-import/recipe-form-values"
-import type { RecipeFormValues, RecipeImportContext, RecipeImportPreview } from "@/types/recipe"
-import { useCallback, useRef, useState } from "react"
+import { useState } from "react"
 import { RecipeForm } from "./recipe-form"
-
-type ImportedDraft = {
-  values: RecipeFormValues
-  context: RecipeImportContext
-}
 
 export const AddRecipe = () => {
   const [url, setUrl] = useState("")
-  const [draft, setDraft] = useState<ImportedDraft | null>(null)
-  const [formMountKey, setFormMountKey] = useState(0)
-  const [pendingPreview, setPendingPreview] = useState<RecipeImportPreview | null>(null)
-  const isDirtyRef = useRef(false)
-
-  const handleDirtyChange = useCallback((isDirty: boolean) => {
-    isDirtyRef.current = isDirty
-  }, [])
-
-  const remountFormWithPreview = (preview: RecipeImportPreview) => {
-    setDraft({
-      values: previewToRecipeFormValues(preview),
-      context: { source: preview.source, warnings: preview.warnings },
-    })
-    setFormMountKey((key) => key + 1)
-    setPendingPreview(null)
-  }
-
-  const { status, error, importFromUrl } = useRecipeImport({
-    onPreview: (preview) => {
-      if (isDirtyRef.current) setPendingPreview(preview)
-      else remountFormWithPreview(preview)
-    },
-  })
+  const {
+    draft,
+    formMountKey,
+    isAwaitingReplaceConfirmation,
+    handleDirtyChange,
+    receivePreview,
+    acceptReplacement,
+    cancelReplacement,
+  } = useImportedDraft()
+  const { status, error, importFromUrl } = useRecipeImport({ onPreview: receivePreview })
 
   return (
     <>
@@ -70,9 +50,9 @@ export const AddRecipe = () => {
         }
       />
       <Dialog
-        open={!!pendingPreview}
+        open={isAwaitingReplaceConfirmation}
         onOpenChange={(open) => {
-          if (!open) setPendingPreview(null)
+          if (!open) cancelReplacement()
         }}
       >
         <DialogContent showCloseButton={false}>
@@ -83,12 +63,10 @@ export const AddRecipe = () => {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPendingPreview(null)}>
+            <Button variant="outline" onClick={cancelReplacement}>
               Keep editing
             </Button>
-            <Button onClick={() => pendingPreview && remountFormWithPreview(pendingPreview)}>
-              Replace draft
-            </Button>
+            <Button onClick={acceptReplacement}>Replace draft</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
