@@ -56,6 +56,15 @@ async function apiPost<T>(path: string, payload: unknown): Promise<T> {
 
 export const getRecipe = (id: number | string) => apiFetch<Recipe>(`/recipes/${id}`)
 
+export const getRandomRecipe = async (options?: FetchOptions): Promise<Recipe | null> => {
+  try {
+    return await apiFetch<Recipe>("/recipes/random", options)
+  } catch (err) {
+    if (isApiError(err) && err.code === "404") return null
+    throw err
+  }
+}
+
 export const RECIPES_LIST_TAG = "recipes-list"
 
 export const listRecipes = async (cursor?: string): Promise<RecipeListPage> => {

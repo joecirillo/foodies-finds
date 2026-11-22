@@ -1,21 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 vi.mock("@/lib/api", () => ({
-  listRecipes: vi.fn(),
-  getRecipe: vi.fn(),
-}))
-
-vi.mock("@/lib/utils/random", () => ({
-  pickRandom: vi.fn(),
+  getRandomRecipe: vi.fn(),
 }))
 
 import { GET } from "./route"
-import { listRecipes, getRecipe } from "@/lib/api"
-import { pickRandom } from "@/lib/utils/random"
+import { getRandomRecipe } from "@/lib/api"
 
-const mockListRecipes = vi.mocked(listRecipes)
-const mockGetRecipe = vi.mocked(getRecipe)
-const mockPickRandom = vi.mocked(pickRandom)
+const mockGetRandomRecipe = vi.mocked(getRandomRecipe)
 
 const recipe = {
   id: 5,
@@ -38,25 +30,34 @@ const recipe = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.spyOn(console, "error").mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe("GET /api/recipes/random", () => {
-  it("returns a random recipe as JSON", async () => {
-    mockListRecipes.mockResolvedValueOnce({ recipes: [{ id: 5, name: "Steak" }], nextCursor: null })
-    mockPickRandom.mockReturnValueOnce({ id: 5, name: "Steak" })
-    mockGetRecipe.mockResolvedValueOnce(recipe)
+  it("returns a random recipe from the whole collection as JSON", async () => {
+    mockGetRandomRecipe.mockResolvedValueOnce(recipe)
 
     const res = await GET()
     const body = await res.json()
 
     expect(res.status).toBe(200)
     expect(body).toEqual(recipe)
-    expect(mockGetRecipe).toHaveBeenCalledWith(5)
   })
 
-  it("returns 404 when list is empty", async () => {
-    mockListRecipes.mockResolvedValueOnce({ recipes: [], nextCursor: null })
-    mockPickRandom.mockReturnValueOnce(undefined)
+  it("skips the fetch cache so Try Another gets a fresh pick", async () => {
+    mockGetRandomRecipe.mockResolvedValueOnce(recipe)
+
+    await GET()
+
+    expect(mockGetRandomRecipe).toHaveBeenCalledWith({ revalidate: 0 })
+  })
+
+  it("returns 404 when there are no recipes", async () => {
+    mockGetRandomRecipe.mockResolvedValueOnce(null)
 
     const res = await GET()
     const body = await res.json()
@@ -65,23 +66,16 @@ describe("GET /api/recipes/random", () => {
     expect(body).toMatchObject({ error: "No recipes found" })
   })
 
-  it("returns 500 when listRecipes throws", async () => {
-    mockListRecipes.mockRejectedValueOnce(new Error("Network error"))
+  it("returns 500 without leaking the error when the backend call fails", async () => {
+    const error = new Error("Network error")
+    mockGetRandomRecipe.mockRejectedValueOnce(error)
 
     const res = await GET()
     const body = await res.json()
 
-    expect(res.status).toBe(500)
-    expect(body).toMatchObject({ error: "Failed to fetch recipe" })
-  })
-
-  it("returns 500 when getRecipe throws", async () => {
-    mockListRecipes.mockResolvedValueOnce({ recipes: [{ id: 5, name: "Steak" }], nextCursor: null })
-    mockPickRandom.mockReturnValueOnce({ id: 5, name: "Steak" })
-    mockGetRecipe.mockRejectedValueOnce(new Error("Not found"))
-
-    const res = await GET()
+    expect(console.error).toHaveBeenCalledWith("Failed to fetch random recipe:", error)
 
     expect(res.status).toBe(500)
+    expect(body).toEqual({ error: "Failed to fetch recipe" })
   })
 })

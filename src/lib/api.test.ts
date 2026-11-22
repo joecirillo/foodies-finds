@@ -3,6 +3,7 @@ import type { EditRecipeRequest, SaveRecipeRequest } from "@/types/recipe"
 import {
   addRecipe,
   getRecipe,
+  getRandomRecipe,
   updateRecipe,
   presignRecipeImageUpload,
   deleteRecipeImage,
@@ -233,6 +234,57 @@ describe("getRecipe", () => {
     await expect(getRecipe(99)).rejects.toMatchObject({
       message: "API 404",
       code: "404",
+    })
+  })
+})
+
+describe("getRandomRecipe", () => {
+  it("unwraps body.data from the backend random endpoint", async () => {
+    const recipe = { id: 7, name: "Tacos" }
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ data: recipe }),
+    })
+
+    const result = await getRandomRecipe()
+    expect(result).toEqual(recipe)
+    expect(mockFetch.mock.calls[0][0]).toMatch(/\/recipes\/random$/)
+  })
+
+  it("caches for 60 seconds by default, like other reads", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: {} }) })
+
+    await getRandomRecipe()
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ next: { revalidate: 60 } })
+  })
+
+  it("lets callers opt out of caching", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ data: {} }) })
+
+    await getRandomRecipe({ revalidate: 0 })
+    expect(mockFetch.mock.calls[0][1]).toMatchObject({ next: { revalidate: 0 } })
+  })
+
+  it("returns null when there are no recipes", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: () => Promise.resolve({ message: "No recipes found" }),
+    })
+
+    await expect(getRandomRecipe()).resolves.toBeNull()
+  })
+
+  it("throws with the API error message on other failures", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 500,
+      json: () => Promise.resolve({ message: "Internal server error" }),
+    })
+
+    await expect(getRandomRecipe()).rejects.toMatchObject({
+      message: "Internal server error",
+      code: "500",
     })
   })
 })
