@@ -14,6 +14,7 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
   const ingredientId = params.ingredientId ? Number(params.ingredientId) : undefined
 
   const hasFilters = cuisineId || tagId || ingredientId
+  const filterKey = JSON.stringify({ cuisineId, tagId, ingredientId })
 
   const loadFirstPage = async (): Promise<RecipeListPage> =>
     hasFilters
@@ -38,15 +39,11 @@ const BrowsePage = async ({ searchParams }: { searchParams: Promise<Record<strin
       </div>
 
       {page === null ? (
-        <BrowseLoadError />
+        <BrowseLoadError key={filterKey} />
       ) : page.recipes.length === 0 ? (
         <p className="text-base text-muted-foreground">No recipes found. Add one now!</p>
       ) : (
-        <RecipeGrid
-          key={JSON.stringify({ cuisineId, tagId, ingredientId })}
-          initialRecipes={page.recipes}
-          initialCursor={page.nextCursor}
-        />
+        <RecipeGrid key={filterKey} initialRecipes={page.recipes} initialCursor={page.nextCursor} />
       )}
     </div>
   )

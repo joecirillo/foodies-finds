@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { render, screen } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 
 vi.mock("@/lib/api", () => ({ listRecipes: vi.fn(), filterRecipes: vi.fn() }))
 vi.mock("@/components/BrowseFilters", () => ({ BrowseFilters: () => null }))
@@ -86,5 +87,16 @@ describe("BrowsePage", () => {
     expect(screen.getByRole("alert")).toBeInTheDocument()
     expect(screen.queryByText(EMPTY_COPY)).not.toBeInTheDocument()
     expect(screen.queryByText(RAW_BACKEND_MESSAGE)).not.toBeInTheDocument()
+  })
+
+  it("resets the retry message when the filters change", async () => {
+    mockFilterRecipes.mockRejectedValue(new Error(RAW_BACKEND_MESSAGE))
+    const { rerender } = await renderPage({ tagId: "2" })
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }))
+    expect(screen.getByRole("alert")).toHaveTextContent("Still no luck")
+
+    rerender(await BrowsePage({ searchParams: Promise.resolve({ tagId: "5" }) }))
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Check your connection and try again.")
   })
 })
