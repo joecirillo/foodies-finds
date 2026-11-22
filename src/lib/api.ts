@@ -1,5 +1,5 @@
 import "server-only"
-import { apiError } from "@/lib/api-error"
+import { apiError, isApiError } from "@/lib/api-error"
 import type {
   ApiResponse,
   Recipe,
