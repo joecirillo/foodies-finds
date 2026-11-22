@@ -55,7 +55,7 @@ describe("RecipeOfTheDay", () => {
   it("renders cuisine and tag badges", () => {
     render(<RecipeOfTheDay initialRecipe={baseRecipe} />)
     expect(screen.getByText("Italian")).toBeInTheDocument()
-    expect(screen.getByText("Pasta")).toBeInTheDocument()
+    expect(screen.getByText("pasta")).toBeInTheDocument()
   })
 
   it("falls back to /no-image.jpeg when imageUrl is null", () => {
