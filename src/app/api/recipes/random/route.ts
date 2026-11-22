@@ -1,12 +1,9 @@
-import { listRecipes, getRecipe } from "@/lib/api"
-import { pickRandom } from "@/lib/utils/random"
+import { getRandomRecipe } from "@/lib/api"
 
 export async function GET() {
   try {
-    const { recipes } = await listRecipes()
-    const picked = pickRandom(recipes)
-    if (!picked) return Response.json({ error: "No recipes found" }, { status: 404 })
-    const recipe = await getRecipe(picked.id)
+    const recipe = await getRandomRecipe({ revalidate: 0 })
+    if (!recipe) return Response.json({ error: "No recipes found" }, { status: 404 })
     return Response.json(recipe)
   } catch {
     return Response.json({ error: "Failed to fetch recipe" }, { status: 500 })

@@ -1,17 +1,14 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { RecipeOfTheDay } from "@/components/FeaturedRecipe"
-import { listRecipes, getRecipe } from "@/lib/api"
-import { pickRandom } from "@/lib/utils/random"
+import { getRandomRecipe } from "@/lib/api"
 import type { Recipe } from "@/types/recipe"
 
 const HomePage = async () => {
   let initialRecipe: Recipe | null = null
 
   try {
-    const { recipes } = await listRecipes()
-    const picked = pickRandom(recipes)
-    if (picked) initialRecipe = await getRecipe(picked.id)
+    initialRecipe = await getRandomRecipe()
   } catch {
     // Render without ROTD if fetch fails
   }
