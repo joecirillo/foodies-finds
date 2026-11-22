@@ -3,11 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { renderHook, act } from "@testing-library/react"
 import { useRecipeSearch } from "./useRecipeSearch"
 
-vi.mock("@/lib/api", () => ({
+vi.mock("@/lib/api-client", () => ({
   searchRecipes: vi.fn(),
 }))
 
-import { searchRecipes } from "@/lib/api"
+import { searchRecipes } from "@/lib/api-client"
 const mockSearchRecipes = vi.mocked(searchRecipes)
 
 beforeEach(() => {

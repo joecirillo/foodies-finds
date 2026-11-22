@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { searchRecipes } from "@/lib/api"
+import { searchRecipes } from "@/lib/api-client"
 import type { RecipeSearchResult } from "@/types/recipe"
 
 export const useRecipeSearch = () => {

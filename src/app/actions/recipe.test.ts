@@ -7,8 +7,7 @@ import type {
   RecipeImportPreview,
 } from "@/types/recipe"
 
-vi.mock("@/lib/api", async (importOriginal) => ({
-  isApiError: (await importOriginal<typeof import("@/lib/api")>()).isApiError,
+vi.mock("@/lib/api", () => ({
   addRecipe: vi.fn(),
   updateRecipe: vi.fn(),
   updateRecipeImage: vi.fn(),
