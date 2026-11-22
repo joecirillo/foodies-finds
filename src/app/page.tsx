@@ -1,19 +1,16 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { RecipeOfTheDay } from "@/components/FeaturedRecipe"
-import { listRecipes, getRecipe } from "@/lib/api"
-import { pickRandom } from "@/lib/utils/random"
+import { getRandomRecipe } from "@/lib/api"
 import type { Recipe } from "@/types/recipe"
 
 const HomePage = async () => {
   let initialRecipe: Recipe | null = null
 
   try {
-    const { recipes } = await listRecipes()
-    const picked = pickRandom(recipes)
-    if (picked) initialRecipe = await getRecipe(picked.id)
-  } catch {
-    // Render without ROTD if fetch fails
+    initialRecipe = await getRandomRecipe()
+  } catch (err) {
+    console.error("Failed to load featured recipe:", err)
   }
 
   return (
