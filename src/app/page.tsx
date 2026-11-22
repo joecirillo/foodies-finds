@@ -9,8 +9,8 @@ const HomePage = async () => {
 
   try {
     initialRecipe = await getRandomRecipe()
-  } catch {
-    // Render without ROTD if fetch fails
+  } catch (err) {
+    console.error("Failed to load featured recipe:", err)
   }
 
   return (

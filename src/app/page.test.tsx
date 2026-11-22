@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 import { render, screen } from "@testing-library/react"
 import type { Recipe } from "@/types/recipe"
 
@@ -41,6 +41,11 @@ const renderHomePage = async () => render(await HomePage())
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.spyOn(console, "error").mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe("HomePage", () => {
@@ -62,10 +67,13 @@ describe("HomePage", () => {
     expect(screen.getByRole("link", { name: "Browse Recipes" })).toBeInTheDocument()
   })
 
-  it("still renders the page when the backend call fails", async () => {
-    mockGetRandomRecipe.mockRejectedValueOnce(new Error("Network error"))
+  it("still renders the page and logs the error when the backend call fails", async () => {
+    const error = new Error("Network error")
+    mockGetRandomRecipe.mockRejectedValueOnce(error)
 
     await renderHomePage()
+
+    expect(console.error).toHaveBeenCalledWith("Failed to load featured recipe:", error)
 
     expect(screen.queryByRole("heading", { name: "Featured Recipe" })).not.toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Foodies Finds" })).toBeInTheDocument()

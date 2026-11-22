@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest"
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest"
 
 vi.mock("@/lib/api", () => ({
   getRandomRecipe: vi.fn(),
@@ -30,6 +30,11 @@ const recipe = {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  vi.spyOn(console, "error").mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe("GET /api/recipes/random", () => {
@@ -62,10 +67,13 @@ describe("GET /api/recipes/random", () => {
   })
 
   it("returns 500 without leaking the error when the backend call fails", async () => {
-    mockGetRandomRecipe.mockRejectedValueOnce(new Error("Network error"))
+    const error = new Error("Network error")
+    mockGetRandomRecipe.mockRejectedValueOnce(error)
 
     const res = await GET()
     const body = await res.json()
+
+    expect(console.error).toHaveBeenCalledWith("Failed to fetch random recipe:", error)
 
     expect(res.status).toBe(500)
     expect(body).toEqual({ error: "Failed to fetch recipe" })
