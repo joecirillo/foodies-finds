@@ -67,4 +67,26 @@ describe("useImportedDraft", () => {
     expect(result.current.draft?.values.name).toBe("Stew")
     expect(result.current.formMountKey).toBe(1)
   })
+
+  it("applies the newest preview when another arrives while one is pending", () => {
+    const { result } = renderDraft({ isDirty: true })
+    act(() => result.current.receivePreview(previewNamed("Stew")))
+    act(() => result.current.receivePreview(previewNamed("Chili")))
+
+    act(() => result.current.acceptReplacement())
+
+    expect(result.current.draft?.values.name).toBe("Chili")
+    expect(result.current.formMountKey).toBe(1)
+  })
+
+  it("ignores accepting after the replacement was cancelled", () => {
+    const { result } = renderDraft({ isDirty: true })
+    act(() => result.current.receivePreview(previewNamed("Stew")))
+    act(() => result.current.cancelReplacement())
+
+    act(() => result.current.acceptReplacement())
+
+    expect(result.current.draft).toBeNull()
+    expect(result.current.formMountKey).toBe(0)
+  })
 })
